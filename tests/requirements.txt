@@ -1,0 +1,5 @@
+codecov>=2.0.15
+pytest>=3.6.2
+pytest-cov>=2.7.1
+pytest-runner>=4.2
+parameterized>=0.6.1
