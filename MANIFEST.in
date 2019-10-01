@@ -1,0 +1,12 @@
+include LICENSE
+include README.rst
+include Makefile
+include requirements.txt
+
+recursive-include package *
+recursive-include tests *
+recursive-include docs *
+
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * *.egg-info
