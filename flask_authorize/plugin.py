@@ -43,17 +43,19 @@ class Authorize(object):
 
     def __init__(self, app=None, current_user=flask_login_current_user):
         if app is not None:
-            self.init_app(app)
+            self.init_app(app, current_user=current_user)
 
-        # set current user function
-        if not callable(current_user):
-            raise AssertionError('Error: `current_user` input must be callable.')
-        global CURRENT_USER
-        CURRENT_USER = current_user
         return
 
-    def init_app(self, app):
+    def init_app(self, app, current_user=None):
         self.app = app
+
+        # set current user function
+        if current_user is not None:
+            if not callable(current_user):
+                raise AssertionError('Error: `current_user` input must be callable.')
+            global CURRENT_USER
+            CURRENT_USER = current_user
         return
 
     @property
