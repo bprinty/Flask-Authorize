@@ -1,5 +1,18 @@
-===
+
 API
 ===
 
-.. Note:: Need to include api documentation!
+
+Base
+----
+
+.. autoclass:: flask_authorize.plugin.Authorize
+   :members:
+
+
+
+Databse Mixins
+--------------
+
+.. autoclass:: flask_authorize.mixins.PermissionsMixin
+   :members:

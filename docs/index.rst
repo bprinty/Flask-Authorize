@@ -1,29 +1,20 @@
-======================================
-Welcome to pypackage's documentation!
-======================================
+===============
+Flask-Authorize
+===============
 
 
-Overview
-========
-
-.. Note:: Need to add description here.
+.. include:: overview.rst
 
 
-Contents:
-=========
+
+User Guide
+==========
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
+   overview
    install
-   quickstart
+   usage
    api
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 

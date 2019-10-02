@@ -1,31 +1,26 @@
-============
+
 Installation
 ============
 
 
-Through pip
-===========
-
-To install the latest stable release via pip, run:
+To install the latest stable release via pip, run::
 
 .. code-block:: bash
 
-    $ pip install pypackage
+    $ pip install Flask-Authorize
 
 
-Via GitHub
-===========
+Alternatively with easy_install, run::
+
+.. code-block:: bash
+
+    $ easy_install Flask-Authorize
+
 
 To install the bleeding-edge version of the project::
 
 .. code-block:: bash
 
-    $ git clone http://github.com/bprinty/pypackage.git
-    $ cd pypackage
+    $ git clone http://github.com/bprinty/Flask-Authorize.git
+    $ cd Flask-Authorize
     $ python setup.py install
-
-
-Questions/Feedback
-==================
-
-For questions/feedback about any of this, file an issue in the `Github Issue Tracker <http://github.com/bprinty/pypackage/issues>`_ for this project.
