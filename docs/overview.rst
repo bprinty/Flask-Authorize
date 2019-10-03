@@ -75,7 +75,7 @@ Defining database models:
     class Article(db.Model, PermissionsMixin):
         __tablename__ = 'articles'
         __permissions__ = dict(
-            owner=['read', 'update', 'delete'],
+            owner=['read', 'update', 'delete', 'revoke'],
             group=['read', 'update'],
             other=['read']
         )
@@ -102,7 +102,7 @@ Defining endpoint actions:
 
     @app.route('/articles/<int:ident>', methods=['GET', 'PUT', 'DELETE'])
     @login.logged_in
-    def article(ident):
+    def single_article(ident):
         article = db.session.query(Article).filter_by(id=ident).first()
         if not article:
             raise NotFound
@@ -139,6 +139,22 @@ Defining endpoint actions:
 
         return
 
+    @app.route('/articles/<int:ident>/revoke', methods=['POST'])
+    @login.logged_in
+    def revoke_article(ident):
+        article = db.session.query(Article).filter_by(id=ident).first()
+        if not article:
+            raise NotFound
+
+        # check if the current user can revoke the article
+        if not authorize.revoke(article):
+            raise Unauthorized
+
+        article.revoked = True
+        db.session.commit()
+
+        return
+
 
 Additionally, if you've configured your application to dispatch request processing to API functions, you can use the ``authorize`` extension object as a decorator:
 
@@ -167,12 +183,18 @@ Additionally, if you've configured your application to dispatch request processi
         db.session.delete(article)
         return
 
+    @authorize.revoke
+    def revoke_article(article):
+        article.revoke = True
+        db.session.commit()
+        return
+
     @authorize.has_role('admin')
     def get_admin_articles():
         pass
 
 
-Using the ``authorize`` extension object as a decorator will implicitly check the current user's access to each argument or keyword argument to the function. For example, if your method takes two ``Article`` objects and merges them into one, you can add permissions for both operations like so:
+Using the extension as a decorator goes a long way in removing boilerplate associated with permissions checking. Additionally, using the ``authorize`` extension object as a decorator will implicitly check the current user's access to each argument or keyword argument to the function. For example, if your method takes two ``Article`` objects and merges them into one, you can add permissions for both operations like so:
 
 .. code-block:: python
 
