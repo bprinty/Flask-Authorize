@@ -14,7 +14,7 @@ except ImportError:
     from distutils.core import setup, find_packages
 
 
-config = __import__('package')
+config = __import__('flask_authorize')
 with open('requirements.txt', 'r') as reqs:
     requirements = map(lambda x: x.rstrip(), reqs.readlines())
 
@@ -43,14 +43,20 @@ setup(
     author_email=config.__email__,
     url=config.__url__,
     packages=find_packages(exclude=['tests']),
-    include_package_data=True,
-    install_requires=requirements,
-    license="Apache-2.0",
+    license="MIT",
     zip_safe=False,
+    include_package_data=True,
+    platforms="any",
+    install_requires=requirements,
     keywords=[config.__pkg__, 'flask', 'permissions', 'authorization', 'user', 'group', 'role'],
     classifiers=[
+        'Environment :: Web Environment',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: Apple Public Source License',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
+        'Topic :: Software Development :: Libraries :: Python Modules'
         'Natural Language :: English',
         "Programming Language :: Python :: 2",
         'Programming Language :: Python :: 2.6',
