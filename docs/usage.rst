@@ -20,22 +20,23 @@ to either permit or deny:
 * Read access to existing content.
 * Updates to existing content.
 * Deletion of existing content.
-
+* Other customized specific actions on existing content.
 
 Moreover, there are several mechanisms for assigning permissions to users
 of the application:
 
 * Role-based access control via permissions or restrictions (RBACs).
 * Group-based access control via permissions or restrictions.
-* Access rights for existing content via owner/group(s) and permission scheme (ACLs).
+* Access rights for existing content via owner/group(s) and permission schemes (ACLs).
 
+This package tries to accomodate each of these needs, providing a flexible set of tools to accommodate each of these schemes, where developers can simply use what their application requires.
 
 
 .. Wikipedia provides a good description of the purpose of ACLS:
 
 .. An access-control list (ACL), with respect to a computer file system, is a list of permissions attached to an object. An ACL specifies which users or system processes are granted access to objects, as well as what operations are allowed on given objects.[1] Each entry in a typical ACL specifies a subject and an operation. For instance, if a file object has an ACL that contains (Alice: read,write; Bob: read), this would give Alice permission to read and write the file and Bob to only read it.
 
-However, there are many different schemes for providing access control, such as Role-based access control, access control lists, or custom schemes. This plugin provides a flexible set of tools to accommodate each of these schemes, where developers can simply use what their application requires.
+However, there are many different schemes for providing access control, such as Role-based access control, access control lists, or custom schemes. 
 
 
 
@@ -60,10 +61,61 @@ Let's use the analogy of a basketball team to make things more concrete. In this
 * Group: Bulls, Team Captains, Scorers, Role-Players
 
 
+Content Permissions
+-------------------
+
+Standard permissions for content:
+
+.. code-block:: python
+
+    class Article(db.Model, PermissionsMixin):
+        __permissions__ = dict(
+            user='rud', # read + update + delete permissions
+            group='ru', # read + update permissions
+            other='r',  # read permissions
+        )
+
+
+You can also assign permissions with a more explicit syntax:
+
+.. code-block:: python
+
+    class Article(db.Model, PermissionsMixin):
+        __permissions__ = dict(
+            owner=['read', 'update', 'delete'],
+            group=['read', 'update'],
+            other=['read']
+        )
+
+
+This more explicit syntax is designed to allow for more customized authorization schemes. For the `Article` example, to add a permission specific to `revoke`-ing an article, you can configure the permissions like so:
+
+.. code-block:: python
+
+    class Article(db.Model, PermissionsMixin):
+        __permissions__ = dict(
+            owner=['read', 'update', 'delete', 'revoke'], # owners can revoke
+            group=['read', 'update', 'revoke'], # group can revoke
+            other=['read']
+        )
+
+And once you've done that, you can use the `@authorize.action` decorator with the name of the permission:
+
+.. code-block:: python
+
+    @authorize.revoke
+    def revoke_article(article):
+        # only those with access to revoke are allowed
+        pass
+
+
 Restrictions
 ------------
 
-Both ``Role`` and ``Group`` models can have optional restrictions on specific operations:
+In addition to authorizing permissions on created content, we can also add another layer 
+
+
+Both ``Role`` and ``Group`` models configured with the ``RoleAuthMixin`` and ``GroupAuthMixin`` can have optional restrictions on specific operations:
 
 .. code-block:: python
 
@@ -151,6 +203,9 @@ Permissions administration for this plugin was inspired by Filesystem ACLs in Li
 By default the settings value for ``AUTHORIZE_DEFAULT_PERMISSIONS`` will be used.
 
 
+Using Numeric Permissions
+-------------------------
+
 
 Logical Flow
 ------------
@@ -179,6 +234,9 @@ Database Mixins
 Talk about what mixins are available and what they create
 
 ``PermissionsMixin``: A mixin that can be added to models ...
+``OwnerPermissionsMixin``
+``GroupPermissionsMixin``
+``MultiGroupPermissionsMixin``
 
 ``MultiGroupPermissionsMixin``: A mixin that can be added to models to enforce access control, where the entities check against are:
     
@@ -192,9 +250,10 @@ Talk about what mixins are available and what they create
 
     test
 
-
-``GroupAuthMixin``
-``UserAuthMixin``
+``GroupRestrictionMixin``
+``GroupPermissionMixin``
+``RoleRestrictionMixin``
+``RolePermissionMixin``
 
 
 Configuration
@@ -226,6 +285,27 @@ A list of configuration keys currently understood by the extension:
                                             other='r'    # read
                                         )
 
+
+``AUTHORIZE_PERMISSION_TYPES``     An ordered list of the permissions scheme
+                                   to use throughout the application. This
+                                   list defines the set of permissions that can
+                                   be declared for authorization groups in the
+                                   ``AUTHORIZE_DEFAULT_PERMISSIONS`` variable.
+
+                                   Note that the index in the list determines 
+                                   the boolean mask used for setting 
+                                   permissions. For instance, see below for the
+                                   default definition and corresponding numeric
+                                   masks: 
+
+                                   .. code-block:: python
+
+                                        [
+                                            'create', # mask 0001 (1)
+                                            'read',   # mask 0010 (2)
+                                            'update', # mask 0100 (4)
+                                            'delete', # mask 1000 (8)
+                                        ]
 ================================== =========================================
 
 
