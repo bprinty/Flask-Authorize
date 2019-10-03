@@ -34,7 +34,6 @@ This package tries to accomodate each of these needs, providing a flexible set o
 
 .. Wikipedia provides a good description of the purpose of ACLS:
 
-.. An access-control list (ACL), with respect to a computer file system, is a list of permissions attached to an object. An ACL specifies which users or system processes are granted access to objects, as well as what operations are allowed on given objects.[1] Each entry in a typical ACL specifies a subject and an operation. For instance, if a file object has an ACL that contains (Alice: read,write; Bob: read), this would give Alice permission to read and write the file and Bob to only read it.
 
 However, there are many different schemes for providing access control, such as Role-based access control, access control lists, or custom schemes. 
 
@@ -61,8 +60,26 @@ Let's use the analogy of a basketball team to make things more concrete. In this
 * Group: Bulls, Team Captains, Scorers, Role-Players
 
 
+What's actually necessary?
+--------------------------
+
+It really depends on how you want to structure your application, if your application requires only User or Other content restrictions.
+
+
+Configuring User/Role/Group Models
+----------------------------------
+
+In order for Flask-Authorize to be fully utilized for access management, the following are required:
+
+
 Content Permissions
 -------------------
+
+Permissions administration for this plugin was inspired by Filesystem ACLs in Linux, where content (files) are associated with three things: an owner, a group, and a set of permissions. ...
+
+
+By default the settings value for ``AUTHORIZE_DEFAULT_PERMISSIONS`` will be used.
+
 
 Standard permissions for content:
 
@@ -109,6 +126,20 @@ And once you've done that, you can use the `@authorize.action` decorator with th
         pass
 
 
+For developers who enjoy assigning permissions via numeric schemes (à la Unix systems), that is also covered:
+
+
+.. code-block:: python
+
+    class Article(db.Model, PermissionsMixin):
+        __permissions__ =  764  # owner (read, update, delete)
+                                # group (read, update)
+                                # other (read)
+
+
+.. note:: Numeric permissions schemes are only supported for restricting read, update, and delete permissions on created content. Bit masks are as follows: 1 (0b001): delete, 2 (0b010): read, 4 (0b100): update. Custom permission schemes must explicitly state permission names.
+
+
 Restrictions
 ------------
 
@@ -123,7 +154,8 @@ Both ``Role`` and ``Group`` models configured with the ``RoleAuthMixin`` and ``G
     role = Role(
         name='reader',
         restrictions=dict(
-            'articles': 'cud' # create, update, and delete restriction
+            articles='cud'           # create, update, and delete restriction
+            secret_articles='crud'   # create, read, update, and delete restriction
         )
     )
     user = User(name='User 1')
@@ -173,38 +205,30 @@ With the users and roles configured above, you can enforce these permissions in 
 
 Even if your content permissions are configured to be wide open, user role/group restrictions will still be checked when determining access.
 
+.. note:: In cases where both Role/Group restrictions and content permissions are conflicting, the most stringent set of permissions will be used. For example, if a user is configured with update restrictions to all `Article` objects and has update access via `Article` permissions, they will be unauthorized to update that content.
 
 
-Content Permissions
--------------------
 
-In administrating content authorization, there are several different pieces
+Allowances
+----------
 
-Permissions administration for this plugin was inspired by Filesystem ACLs in Linux, where content (files) are associated with three things: an owner, a group, and a set of permissions.
+If you want to explicitly allow access to each type of action (i.e. the inverse of **restrictions**), you can do so using the ``RoleAllowanceMixin`` and ``GroupAllowanceMixin`` mixin objects when defining your models. See the `Database Mixins`_ section below for more details on what each of the mixins provide.
+
+Mirroring the example above, we can explicitly set allowances for a role via:
 
 .. code-block:: python
 
-    # via numeric scheme
-    class Article(db.Model, PermissionsMixin):
-        __permissions__ = '764' # owner (read, write, delete)
-                                # group (read, write)
-                                # other (read)
-
-
-    # with explicit syntax
-    class Article(db.Model, PermissionsMixin):
-        __permissions__ = dict(
-            owner='rwd',
-            group='rw',
-            other='r'
+    role = Role(
+        name='reader',
+        allowances=dict(
+            articles='r'          # read only authorization
+            secret_articles=None  # no authorization
         )
+    )
+    db.session.add(role)
+    db.session.commit()
 
-
-By default the settings value for ``AUTHORIZE_DEFAULT_PERMISSIONS`` will be used.
-
-
-Using Numeric Permissions
--------------------------
+.. note:: In cases where both Role/Group allowances and content permissions are conflicting, the most stringent set of permissions will be used. For example, if a user is configured with read access to all `Article` objects but doesn't have access via `Article` permissions, they will be unauthorized to view that content.
 
 
 Logical Flow
@@ -220,12 +244,6 @@ Viewing/Editing Existing Content
 ++++++++++++++++++++++++++++++++
 
 If the content
-
-
-What's actually necessary?
---------------------------
-
-It really depends on how you want to structure your application, if your application requires only User or Other content restrictions.
 
 
 Database Mixins
@@ -284,28 +302,6 @@ A list of configuration keys currently understood by the extension:
                                             group='ru',  # read, update
                                             other='r'    # read
                                         )
-
-
-``AUTHORIZE_PERMISSION_TYPES``     An ordered list of the permissions scheme
-                                   to use throughout the application. This
-                                   list defines the set of permissions that can
-                                   be declared for authorization groups in the
-                                   ``AUTHORIZE_DEFAULT_PERMISSIONS`` variable.
-
-                                   Note that the index in the list determines 
-                                   the boolean mask used for setting 
-                                   permissions. For instance, see below for the
-                                   default definition and corresponding numeric
-                                   masks: 
-
-                                   .. code-block:: python
-
-                                        [
-                                            'create', # mask 0001 (1)
-                                            'read',   # mask 0010 (2)
-                                            'update', # mask 0100 (4)
-                                            'delete', # mask 1000 (8)
-                                        ]
 ================================== =========================================
 
 

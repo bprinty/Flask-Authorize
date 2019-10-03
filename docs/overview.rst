@@ -30,26 +30,55 @@ Defining database models:
 
 .. code-block:: python
 
-    from flask_authorize import UserAuthMixin, GroupAuthMixin, RoleAuthMixin
+    from flask_authorize import GroupRestrictionsMixin, RoleRestrictionsMixin
     from flask_authorize import PermissionsMixin
 
-    class User(db.Model, UserAuthMixin):
+
+    # mapping tables
+    UserGroup = db.Table(
+        'user_group', db.Model.metadata,
+        db.Column('user_id', db.Integer, db.ForeignKey('users.id')),
+        db.Column('group_id', db.Integer, db.ForeignKey('groups.id'))
+    )
+
+
+    UserRole = db.Table(
+        'user_role', db.Model.metadata,
+        db.Column('user_id', db.Integer, db.ForeignKey('users.id')),
+        db.Column('role_id', db.Integer, db.ForeignKey('roles.id'))
+    )
+
+
+    # models
+    class User(db.Model):
         __tablename__ = 'users'
 
         id = db.Column(db.Integer, primary_key=True)
         name = db.Column(db.String(255), nullable=False, unique=True)
 
+        # `roles` and `groups` are reserved words that *must* be defined
+        # on the `User` model to use group- or role-based authorization.
+        roles = db.relationship('Role', secondary=UserRole)
+        groups = db.relationship('Group', secondary=UserGroup)
 
-    class Group(db.Model, GroupAuthMixin):
-        pass
 
-    class Role(db.Model, RoleAuthMixin):
-        pass
+    class Group(db.Model, GroupRestrictionsMixin):
+        id = db.Column(db.Integer, primary_key=True)
+        name = db.Column(db.String(255), nullable=False, unique=True)
+
+
+    class Role(db.Model, RoleRestrictionsMixin):
+        id = db.Column(db.Integer, primary_key=True)
+        name = db.Column(db.String(255), nullable=False, unique=True)
 
 
     class Article(db.Model, PermissionsMixin):
         __tablename__ = 'articles'
-        __permissions__ = '666'
+        __permissions__ = dict(
+            owner=['read', 'update', 'delete'],
+            group=['read', 'update'],
+            other=['read']
+        )
 
         id = db.Column(db.Integer, primary_key=True)
         name = db.Column(db.String(255), index=True, nullable=False)
@@ -88,8 +117,8 @@ Defining endpoint actions:
 
         elif request.method == 'PUT':
 
-            # check if the current user is authorized to write to the article
-            if not authorize.write(article):
+            # check if the current user is authorized to update to the article
+            if not authorize.update(article):
                 raise Unauthorized
 
             for key, value in request.json.items():
@@ -101,7 +130,8 @@ Defining endpoint actions:
         elif request.method == 'DELETE':
 
             # check if the current user is associated with the 'admin' role
-            if not authorize.has_role('admin'):
+            if not authorize.delete(article) or \
+               not authorize.has_role('admin'):
                 raise Unauthorized
 
             db.session.delete(article)
@@ -110,7 +140,7 @@ Defining endpoint actions:
         return
 
 
-Additionally, if you've configured your application to dispatch request to api functions, you can use the ``authorize`` extension object as a decorator:
+Additionally, if you've configured your application to dispatch request processing to API functions, you can use the ``authorize`` extension object as a decorator:
 
 .. code-block:: python
 
@@ -125,7 +155,7 @@ Additionally, if you've configured your application to dispatch request to api f
     def read_article(article):
         return article
 
-    @authorize.write
+    @authorize.update
     def update_article(article, **kwargs):
         for key, value in request.json.items():
             setattr(article, key, value)
@@ -137,12 +167,12 @@ Additionally, if you've configured your application to dispatch request to api f
         db.session.delete(article)
         return
 
-    @authorize.role('admin')
+    @authorize.has_role('admin')
     def get_admin_articles():
         pass
 
 
-Using the ``authorize`` extension object as a decorator will implicitly check the current user's access to each argument or keyword argument to the function. For example, if your method takes two `Article` objects and merges them into one, you can add permissions for both operations like so:
+Using the ``authorize`` extension object as a decorator will implicitly check the current user's access to each argument or keyword argument to the function. For example, if your method takes two ``Article`` objects and merges them into one, you can add permissions for both operations like so:
 
 .. code-block:: python
 
@@ -166,12 +196,14 @@ By default, this module uses the Flask-Login extension for determining the curre
 
 .. code-block:: python
 
-    from flask import Flask
+    from flask import Flask, g
     from flask_authorize import Authorize
 
     def my_current_user():
-        # logic to get user for authorization
-        return user
+        """
+        Return current user to check authorization against.
+        """
+        return g.user
 
     # using the declarative method for setting up the extension
     app = Flask(__name__)
