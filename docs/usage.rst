@@ -2,19 +2,13 @@
 Usage
 =====
 
-The sections below detail how to fully use this module, along with
-context for some of the design decisions made during development
-of the plugin.
-
+The sections below detail how to fully use this module, along with context for design decisions made during development of the plugin.
 
 
 Access Control
 --------------
 
-Applications housing sensitive material are often required to restrict
-certain types of access to both content and actions related to that
-content. This means that developers of the application need the ability
-to either permit or deny:
+Applications housing sensitive material are often required to restrict certain types of access to both content and actions related to that content. This means that developers of the application need the ability to either permit or deny:
 
 * Creation of new content.
 * Read access to existing content.
@@ -22,27 +16,19 @@ to either permit or deny:
 * Deletion of existing content.
 * Other customized specific actions on existing content.
 
-Moreover, there are several mechanisms for assigning permissions to users
-of the application:
+Moreover, there are several mechanisms for assigning permissions to users of the application:
 
 * Role-based access control via permissions or restrictions (RBACs).
 * Group-based access control via permissions or restrictions.
 * Access rights for existing content via owner/group(s) and permission schemes (ACLs).
 
-This package tries to accomodate each of these needs, providing a flexible set of tools to accommodate each of these schemes, where developers can simply use what their application requires.
-
-
-.. Wikipedia provides a good description of the purpose of ACLS:
-
-
-However, there are many different schemes for providing access control, such as Role-based access control, access control lists, or custom schemes. 
-
+This package tries to accommodate each of these needs, providing a flexible set of tools to fit alongside all of these authorization schemes. The flexibility of this plugin allows developers to only use what their application requires.
 
 
 Users, Roles, Groups
 --------------------
 
-To understand the nuances of each model, let's go over the purpose of each.
+With any authorization mechanism, you need an entity to authorize against. In standard web applications, there are three types of entities that are typically authorized against: the ``User``, ``Group``, and ``Role``. To understand the nuances of each model, let's go over the purpose of each.
 
 * User: A user represents a singular entity that is interacting with the application. They can assume multiple roles or be part of multiple groups.
 
@@ -59,29 +45,56 @@ Let's use the analogy of a basketball team to make things more concrete. In this
 
 * Group: Bulls, Team Captains, Scorers, Role-Players
 
+In this analogy, there are a multitude of actions that can be performed by any of these entities. In permissions schemes, you 
+
+
+A Relevant Use-Case
+-------------------
+
+In the documentation below, we need a use-case to illustrate the various functionality this plugin provides. Let's
+
+* ``User`` - The current logged-in user issuing a request.
+* ``Group`` - A collection of users. The current user can be assigned to one or multiple groups.
+* ``Role`` - A vehicle for assigning permissions. The current user can be allowed to take on one or multiple roles.
+* ``Article`` - A piece of content that needs to potentially have both RBAC and ACL enforcement.
+
 
 What's actually necessary?
 --------------------------
 
-It really depends on how you want to structure your application, if your application requires only User or Other content restrictions.
+It really depends on how you want to structure your application. If your application requires only owner or other content restrictions, you don't need to configure a ``Group`` or ``Role`` model for this plugin to work. if your application doesn't need the additional role authorization, you don't need to configure a ``Role`` to use with the plugin.
+
+The important thing to understand is that there are two reserved keywords on the ``User`` model (the object returned by the ``current_user`` function configured for the plugin): ``roles`` and ``groups``. These need to be configured to return (respectively) a list of ``Role`` or ``Group`` objects to check authorization for if your application is configured to do role- or group-based authorization. Here's an example of a correctly configured user model (``UserRole`` and ``UserGroup`` are separate mapping tables).
+
+.. code-block:: python
+
+    class User(db.Model):
+        __tablename__ = 'users'
+
+        id = db.Column(db.Integer, primary_key=True)
+        name = db.Column(db.String(255), nullable=False, unique=True)
+
+        # `roles` and `groups` are reserved words that *must* be defined
+        # on the `User` model to use group- or role-based authorization.
+        roles = db.relationship('Role', secondary=UserRole)
+        groups = db.relationship('Group', secondary=UserGroup)
 
 
-Configuring User/Role/Group Models
-----------------------------------
-
-In order for Flask-Authorize to be fully utilized for access management, the following are required:
+This application will implicitly check the existance of ``roles`` and ``groups`` properties on the current user object when checking authorization. If either of these properties is not defined, this plugin will not perform associated authorization checks.
 
 
 Content Permissions
 -------------------
 
-Permissions administration for this plugin was inspired by Filesystem ACLs in Linux, where content (files) are associated with three things: an owner, a group, and a set of permissions. ...
+Permissions administration for this plugin was inspired by Filesystem ACLs in Linux, where content (files) are associated with three things: an owner, a group, and a set of permissions. For each content model you want to restrict access to, you can define permissions like so:
+
+.. code-block:: python
+
+    class Article(db.Model, PermissionsMixin):
+        pass
 
 
-By default the settings value for ``AUTHORIZE_DEFAULT_PERMISSIONS`` will be used.
-
-
-Standard permissions for content:
+This uses default content permissions taken from the ``AUTHORIZE_DEFAULT_PERMISSIONS`` configuration variable. If you want to customize content permissions, you can set the value of the ``__permissions__`` property:
 
 .. code-block:: python
 
@@ -128,7 +141,6 @@ And once you've done that, you can use the `@authorize.action` decorator with th
 
 For developers who enjoy assigning permissions via numeric schemes (à la Unix systems), that is also covered:
 
-
 .. code-block:: python
 
     class Article(db.Model, PermissionsMixin):
@@ -140,13 +152,62 @@ For developers who enjoy assigning permissions via numeric schemes (à la Unix s
 .. note:: Numeric permissions schemes are only supported for restricting read, update, and delete permissions on created content. Bit masks are as follows: 1 (0b001): delete, 2 (0b010): read, 4 (0b100): update. Custom permission schemes must explicitly state permission names.
 
 
+Setting Custom Content Permissions
+----------------------------------
+
+If you want to override default permissions for a piece of content, you can do so with the ``set_permissions`` method on a content object:
+
+.. code-block:: python
+
+    article = Article(
+        name='test'
+    )
+    article.set_permissions(
+        owner='rud'               # read, update, and delete
+        group=['read', 'update']  # read and update
+        other=2                   # read
+    )
+
+Alternatively, using a numeric scheme:
+
+.. code-block:: python
+
+    article = Article(
+        name='test'
+    )
+    article.set_permissions(762)
+
+
+Additionally, permissions can be accessed with the ``permissions`` property on a content object:
+
+.. code-block::
+
+    article = Article(name='test')
+    print(article.permissions)
+    # {
+    #     'owner': ['read', 'update', 'delete'],
+    #     'group': ['read', 'update'],
+    #     'other': ['read']
+    # }
+
+
 Restrictions
 ------------
 
-In addition to authorizing permissions on created content, we can also add another layer 
+In addition to authorizing permissions on created content, we can also add another layer of authorization with ``Role`` or ``Group`` content restrictions. With content restrictions, users in associated roles or groups will be unauthorized to perform specific actions. To configure your roles or groups to enable restrictions, you can use the ``RestrictionsMixin`` object:
+
+.. code-block:: python
+
+    class Role(db.Model, RestrictionMixin):
+        id = db.Column(db.Integer, primary_key=True)
+        name = db.Column(db.String(255), nullable=False, unique=True)
+
+    class Group(db.Model, RestrictionMixin):
+        id = db.Column(db.Integer, primary_key=True)
+        name = db.Column(db.String(255), nullable=False, unique=True)
 
 
-Both ``Role`` and ``Group`` models configured with the ``RoleAuthMixin`` and ``GroupAuthMixin`` can have optional restrictions on specific operations:
+Once configured with this mixin, restrictions can be set up for users like so:
 
 .. code-block:: python
 
@@ -164,9 +225,7 @@ Both ``Role`` and ``Group`` models configured with the ``RoleAuthMixin`` and ``G
     db.session.commit()
 
 
-
-With the users and roles configured above, you can enforce these permissions in api methods like so:
-
+Once this is all configured, you can enforce these restrictions like so:
 
 .. code-block:: python
 
@@ -178,13 +237,15 @@ With the users and roles configured above, you can enforce these permissions in 
         pass
 
     @authorize.update
+    @authorize.in_group('admin-editors')
     def update_article(name):
         # will raise an Unauthorized error if the user
-        # is not authorized to create articles
+        # is not authorized to update articles or is
+        # not in the group 'admin-editors'
         pass
 
     @authorize.delete
-    @authorize.role('admin')
+    @authorize.has_role('admin')
     def delete_article(name):
         # will raise an Unauthorized error if the user
         # is not an admin or not authorized to delete articles
@@ -206,7 +267,6 @@ With the users and roles configured above, you can enforce these permissions in 
 Even if your content permissions are configured to be wide open, user role/group restrictions will still be checked when determining access.
 
 .. note:: In cases where both Role/Group restrictions and content permissions are conflicting, the most stringent set of permissions will be used. For example, if a user is configured with update restrictions to all `Article` objects and has update access via `Article` permissions, they will be unauthorized to update that content.
-
 
 
 Allowances
@@ -231,19 +291,147 @@ Mirroring the example above, we can explicitly set allowances for a role via:
 .. note:: In cases where both Role/Group allowances and content permissions are conflicting, the most stringent set of permissions will be used. For example, if a user is configured with read access to all `Article` objects but doesn't have access via `Article` permissions, they will be unauthorized to view that content.
 
 
-Logical Flow
-------------
+Authorization Schemes
+---------------------
 
-Creating New Content
-++++++++++++++++++++
+authorize.<action>
++++++++++++++++++++
 
-If the content has
+Methods under this authorization scheme:
+
+    * ``authorize.read``
+    * ``authorize.update``
+    * ``authorize.delete``
+    * ``authorize.create(ContentModel)``
+    * ``authorize.custom_scheme``
+
+Return ``True`` if the ``current_user`` is authorized to access content either by content permissions or by Group- or Role- based permissions or restrictions. Since this type of permissions scheme includes both content permissions and potential Role/Group restrictions or permissions, let's go over logical flow in two stages. First, role- or group-based access control:
+
+1. Is the user assuming a role or have a role that does not allow access (restrictions)? (if applicable)
+2. Is the user assuming a role or have a role that does not include access in allowances? (if applicable)
+3. Is the user in a group that does not allow access? (if applicable)
+4. Is the user in a group that does not include access in allowances? (if applicable)
+
+If any of these criteria are met, the authorization scheme will return ``False``. Now for access control lists related to the specific content item:
+
+5. For the specific content item, does the ``other`` permissions component allow access?
+6. For the specific content item, does the ``owner`` permissions component allow access?
+7. For the specific content item, does the ``group`` permissions component allow access?
+
+If any of these criteria are not met, the authorization scheme will return ``False``.
+
+Below is an example of how this scheme might be used:
+
+.. code-block:: python
+
+    # decoration
+    @authorize.create(Article)
+    def create_article(name):
+        # raise Unauthorized if the `current_user` is not
+        # authorized to create the article
+        pass
+
+    @authorize.read
+    def get_article(article):
+        # raise Unauthorized if the `current_user` is not
+        # authorized to read the article
+        pass
+
+    @authorize.update
+    def update_article(article):
+        # raise Unauthorized if the `current_user` is not
+        # authorized to update the article
+        pass
+
+    @authorize.delete
+    def update_article(article):
+        # raise Unauthorized if the `current_user` is not
+        # authorized to delete the article
+        pass
+
+    @authorize.revoke
+    def revoke_article(article):
+        # raise Unauthorized if the `current_user` is not
+        # authorized to revoke the article. In this example,
+        # `revoke` is a custom authorization scheme. 
+        pass
+
+    # explicit
+    def all_article_actions(article):
+        if not authorize.create(article.__class__) or \
+           not authorize.read(article) or \
+           not authorize.update(article) or \
+           not authorize.delete(article) or \
+           not authorize.revoke(article):
+            raise Unauthorized
+        pass
+
+This authorization mechanism can be used in conjunction with content models using the ``PermissionsMixin`` or ``MultiGroupPermissionsMixin``.
 
 
-Viewing/Editing Existing Content
-++++++++++++++++++++++++++++++++
+authorize.in_group('<group>')
++++++++++++++++++++++++++++++
 
-If the content
+Return ``True`` if the ``current_user`` is not associated with the specified ``Group``. For example:
+
+.. code-block:: python
+
+    # decorator
+    @authorize.in_group('administrators')
+    def admin_func(article):
+        # raise Unauthorized if the `current_user` is not in
+        # the `administrators` group.
+        pass
+
+    # explicit
+    def admin_handler(article):
+        if not authorize.in_group('administrators'):
+            raise Unauthorized
+        pass
+
+
+authorize.has_role('<role>')
+++++++++++++++++++++++++++++
+
+Return ``True`` if the ``current_user`` is not associated with the specified ``Role``. For example:
+
+.. code-block:: python
+
+    # decorator
+    @authorize.has_role('admin')
+    def admin_func(article):
+        # raise Unauthorized if the `current_user` is not associated
+        # with the `admin` role.
+        pass
+
+    # explicit
+    def admin_handler(article):
+        if not authorize.has_role('admin'):
+            raise Unauthorized
+        pass
+
+
+authorize.is_role('<role>')
++++++++++++++++++++++++++++
+
+Return ``True`` if the ``current_user`` has a ``current_role`` property that matches the specified ``Role``. For example:
+
+.. code-block:: python
+
+    # decorator
+    @authorize.is_role('admin')
+    def admin_func(article):
+        # raise Unauthorized if the `current_user` is not
+        # assuming the `admin` role.
+        pass
+
+    # explicit
+    def admin_handler(article):
+        if not authorize.is_role('admin'):
+            raise Unauthorized
+        pass
+
+This authorization mechanism can be used in conjunction with ``User`` models using the ``UserRoleMixin``.
 
 
 Database Mixins
@@ -251,27 +439,58 @@ Database Mixins
 
 Talk about what mixins are available and what they create
 
-``PermissionsMixin``: A mixin that can be added to models ...
-``OwnerPermissionsMixin``
-``GroupPermissionsMixin``
-``MultiGroupPermissionsMixin``
+Content Authorization
++++++++++++++++++++++
 
-``MultiGroupPermissionsMixin``: A mixin that can be added to models to enforce access control, where the entities check against are:
+* ``PermissionsMixin``: A mixin that enables authorization on the owner and group associated with a content item. The database columns included in this mixin are:
+
+    - ``owner`` - The owner of the content. Defaults to the current_user when the object was created.
+    - ``owner_permissions`` - The owner permissions associated with the content.
+    - ``group`` - A single Group associated with the content.
+    - ``group_permissions`` - The group permissions associated with the content.
+
+
+* ``OwnerPermissionsMixin``: A mixin that enables only owner authorization with a content item. The database columns included in this mixin are:
+
+    - ``owner`` - The owner of the content. Defaults to the current_user when the object was created.
+    - ``owner_permissions`` - The owner permissions associated with the content.
+
+* ``GroupPermissionsMixin``: A mixin that enables only group authorization with a content item. The database columns included in this mixin are:
+
+    - ``group`` - A single Group associated with the content.
+    - ``group_permissions`` - The group permissions associated with the content.
+
+.. * ``GroupsPermissionsMixin``: A mixin that enables multi-group authorization with a content item. The database columns included in this mixin are:
+
+..     - ``groups`` - A list of groups associated with the content.
+..     - ``group_permissions`` - The group permissions associated with the content.
+
+.. * ``ComplexPermissionsMixin``: A mixin that enables both user and multi-group authorization with a content item. The database columns included in this mixin are:
+
+..     - ``owner`` - The owner of the content. Defaults to the current_user when the object was created.
+..     - ``owner_permissions`` - The owner permissions associated with the content.
+..     - ``groups`` - Groups associated with the content.
+..     - ``group_permissions`` - The group permissions associated with the content.
+
+
+Role/Group Authorization
+++++++++++++++++++++++++
+
+* ``GroupRestrictionsMixin``: A mixin that enables restriction checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
     
-    * ``owner`` - The owner of the content.
-    * ``groups`` - Groups associated with the content.
+    - ``restrictions``: A list of content restrictions associated with the group.
 
+``GroupPermissionsMixin``: A mixin that enables permission checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
+    
+    - ``permissions``: A list of content permissions associated with the group.
 
-``RoleAuthMixin``: Equivalent to defining the following model:
+``RoleRestrictionsMixin``: A mixin that enables restriction checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
+    
+    - ``restrictions``: A list of content restrictions associated with the group.
 
-.. code-block:: python
-
-    test
-
-``GroupRestrictionMixin``
-``GroupPermissionMixin``
-``RoleRestrictionMixin``
-``RolePermissionMixin``
+``RolePermissionsMixin``: A mixin that enables permission checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
+    
+    - ``permissions``: A list of content permissions associated with the group.
 
 
 Configuration
