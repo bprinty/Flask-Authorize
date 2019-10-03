@@ -480,15 +480,15 @@ Role/Group Authorization
     
     - ``restrictions``: A list of content restrictions associated with the group.
 
-``GroupPermissionsMixin``: A mixin that enables permission checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
+* ``GroupPermissionsMixin``: A mixin that enables permission checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
     
     - ``permissions``: A list of content permissions associated with the group.
 
-``RoleRestrictionsMixin``: A mixin that enables restriction checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
+* ``RoleRestrictionsMixin``: A mixin that enables restriction checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
     
     - ``restrictions``: A list of content restrictions associated with the group.
 
-``RolePermissionsMixin``: A mixin that enables permission checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
+* ``RolePermissionsMixin``: A mixin that enables permission checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
     
     - ``permissions``: A list of content permissions associated with the group.
 
