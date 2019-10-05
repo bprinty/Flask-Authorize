@@ -21,8 +21,7 @@ import os
 # ones.
 extensions = [
     'sphinx.ext.imgmath',
-    'sphinx.ext.autodoc',
-    'sphinx.ext.napoleon'
+    'sphinx.ext.autodoc'
 ]
 
 # Napoleon settings
