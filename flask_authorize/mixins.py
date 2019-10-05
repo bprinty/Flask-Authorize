@@ -20,7 +20,7 @@ class PermissionsMixin(object):
     Database mixin to use with Flask-Authorize for enabling permissions
     on instances of content models.
 
-    .. todo:: MORE DOCS about permission scheme
+    NEED TO INCLUDE MORE DOCS
 
     """
     __permissions__ = '666'
