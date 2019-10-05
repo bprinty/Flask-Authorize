@@ -16,3 +16,6 @@ Databse Mixins
 
 .. autoclass:: flask_authorize.mixins.PermissionsMixin
    :members:
+
+.. autoclass:: flask_authorize.mixins.PermissionsMixin
+   :members:

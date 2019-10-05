@@ -246,7 +246,7 @@ Alternatively, using a numeric scheme:
 
 Additionally, permissions can be accessed with the ``permissions`` property on a content object:
 
-.. code-block::
+.. code-block:: python
 
     article = Article(name='test')
     print(article.permissions)
@@ -511,32 +511,30 @@ Content Authorization
 * ``PermissionsMixin``: A mixin that enables authorization on the owner and group associated with a content item. The database columns included in this mixin are:
 
     - ``owner`` - The owner of the content. Defaults to the current_user when the object was created.
-    - ``owner_permissions`` - The owner permissions associated with the content.
     - ``group`` - A single Group associated with the content.
-    - ``group_permissions`` - The group permissions associated with the content.
+    - ``permissions`` - JSON data encoding permissions for the content.
 
 
 * ``OwnerPermissionsMixin``: A mixin that enables only owner authorization with a content item. The database columns included in this mixin are:
 
     - ``owner`` - The owner of the content. Defaults to the current_user when the object was created.
-    - ``owner_permissions`` - The owner permissions associated with the content.
+    - ``permissions`` - JSON data encoding permissions for the content.
 
 * ``GroupPermissionsMixin``: A mixin that enables only group authorization with a content item. The database columns included in this mixin are:
 
     - ``group`` - A single Group associated with the content.
-    - ``group_permissions`` - The group permissions associated with the content.
+    - ``permissions`` - JSON data encoding permissions for the content.
 
-.. * ``GroupsPermissionsMixin``: A mixin that enables multi-group authorization with a content item. The database columns included in this mixin are:
+* ``MultiGroupPermissionsMixin``: A mixin that enables multi-group authorization with a content item. The database columns included in this mixin are:
 
-..     - ``groups`` - A list of groups associated with the content.
-..     - ``group_permissions`` - The group permissions associated with the content.
+    - ``groups`` - A list of groups associated with the content.
+    - ``permissions`` - JSON data encoding permissions for the content.
 
-.. * ``ComplexPermissionsMixin``: A mixin that enables both user and multi-group authorization with a content item. The database columns included in this mixin are:
+* ``ComplexPermissionsMixin``: A mixin that enables both user and multi-group authorization with a content item. The database columns included in this mixin are:
 
-..     - ``owner`` - The owner of the content. Defaults to the current_user when the object was created.
-..     - ``owner_permissions`` - The owner permissions associated with the content.
-..     - ``groups`` - Groups associated with the content.
-..     - ``group_permissions`` - The group permissions associated with the content.
+    - ``owner`` - The owner of the content. Defaults to the current_user when the object was created.
+    - ``groups`` - Groups associated with the content.
+    - ``permissions`` - JSON data encoding permissions for the content.
 
 
 Role/Group Authorization
