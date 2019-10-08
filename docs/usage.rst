@@ -37,7 +37,7 @@ With any authorization mechanism, you need an entity to authorize against. In st
 * Group: A group represents a collection of users. Groups can be associated with permissions or permission restrictions.
 
 
-Let's use the analogy of a basketball team to make things more concrete. In this analogy, examples of each model are as follows:
+Let's use a basketball analogy to make things more concrete. In this analogy, examples of each model are as follows:
 
 * Users: MJ, Scottie Pippen, Dennis Rodman, Toni Kukoc, Steve Kerr, Robert Parish
 
@@ -45,18 +45,84 @@ Let's use the analogy of a basketball team to make things more concrete. In this
 
 * Group: Bulls, Team Captains, Scorers, Role-Players
 
-In this analogy, there are a multitude of actions that can be performed by any of these entities. In permissions schemes, you 
+In this analogy, there are a multitude of actions that can be performed by any of these entities. However, only certain entities should be allowed to do certain things. For example, in this analogy:
+
+* A user assuming the role 'Small Forward' (Rodman) shouldn't be able to perform the action 'shoot 3s'.
+
+* A user in the group 'Bulls' shouldn't perform the action 'score for the Jazz'.
+
+In addition, you might need to restrict access to certain types of created content in the application to specific users or groups. Using a playbook as a content example, you might want to say that everyone in the 'Bulls' group can read the playbook, but only members of the 'Team Captains' group can make edits to it. We could go down this analogy further, but let's switch context to a more relevant use case.
 
 
 A Relevant Use-Case
 -------------------
 
-In the documentation below, we need a use-case to illustrate the various functionality this plugin provides. Let's
+In the documentation below, we need a use-case to illustrate the various functionality this plugin provides. Let's use the following models in the examples throughout the rest of the documentation.
 
 * ``User`` - The current logged-in user issuing a request.
 * ``Group`` - A collection of users. The current user can be assigned to one or multiple groups.
 * ``Role`` - A vehicle for assigning permissions. The current user can be allowed to take on one or multiple roles.
 * ``Article`` - A piece of content that needs to potentially have both RBAC and ACL enforcement.
+
+Here are model definitions for the above scheme in the context of a Flask application:
+
+.. code-block:: python 
+
+        from flask_authorize import GroupRestrictionsMixin, RoleRestrictionsMixin
+        from flask_authorize import PermissionsMixin
+
+        # mapping tables
+        UserGroup = db.Table(
+            'user_group', db.Model.metadata,
+            db.Column('user_id', db.Integer, db.ForeignKey('users.id')),
+            db.Column('group_id', db.Integer, db.ForeignKey('groups.id'))
+        )
+
+
+        UserRole = db.Table(
+            'user_role', db.Model.metadata,
+            db.Column('user_id', db.Integer, db.ForeignKey('users.id')),
+            db.Column('role_id', db.Integer, db.ForeignKey('roles.id'))
+        )
+
+
+        # models
+        class User(db.Model):
+            __tablename__ = 'users'
+
+            id = db.Column(db.Integer, primary_key=True)
+            name = db.Column(db.String(255), nullable=False, unique=True)
+
+            # `roles` and `groups` are reserved words that *must* be defined
+            # on the `User` model to use group- or role-based authorization.
+            roles = db.relationship('Role', secondary=UserRole)
+            groups = db.relationship('Group', secondary=UserGroup)
+
+
+        class Group(db.Model, GroupRestrictionsMixin):
+            id = db.Column(db.Integer, primary_key=True)
+            name = db.Column(db.String(255), nullable=False, unique=True)
+
+
+        class Role(db.Model, RoleRestrictionsMixin):
+            id = db.Column(db.Integer, primary_key=True)
+            name = db.Column(db.String(255), nullable=False, unique=True)
+
+
+        class Article(db.Model, PermissionsMixin):
+            __tablename__ = 'articles'
+            __permissions__ = dict(
+                owner=['read', 'update', 'delete', 'revoke'],
+                group=['read', 'update'],
+                other=['read']
+            )
+
+            id = db.Column(db.Integer, primary_key=True)
+            name = db.Column(db.String(255), index=True, nullable=False)
+            contents = db.Column(db.Text)
+
+
+.. note:: Not all of these models are necessary for using this plugin. For example: if your application doesn't need Role-based authentication, you don't need to define a `Role` model in your database.
 
 
 What's actually necessary?
@@ -80,7 +146,7 @@ The important thing to understand is that there are two reserved keywords on the
         groups = db.relationship('Group', secondary=UserGroup)
 
 
-This application will implicitly check the existance of ``roles`` and ``groups`` properties on the current user object when checking authorization. If either of these properties is not defined, this plugin will not perform associated authorization checks.
+This application will implicitly check the existence of ``roles`` and ``groups`` properties on the current user object when checking authorization. If either of these properties is not defined, this plugin will not perform associated authorization checks.
 
 
 Content Permissions
@@ -180,7 +246,7 @@ Alternatively, using a numeric scheme:
 
 Additionally, permissions can be accessed with the ``permissions`` property on a content object:
 
-.. code-block::
+.. code-block:: python
 
     article = Article(name='test')
     print(article.permissions)
@@ -272,7 +338,7 @@ Even if your content permissions are configured to be wide open, user role/group
 Allowances
 ----------
 
-If you want to explicitly allow access to each type of action (i.e. the inverse of **restrictions**), you can do so using the ``RoleAllowanceMixin`` and ``GroupAllowanceMixin`` mixin objects when defining your models. See the `Database Mixins`_ section below for more details on what each of the mixins provide.
+If you want to explicitly allow access to each type of action (i.e. the inverse of **restrictions**), you can do so using the ``RoleAllowancesMixin`` and ``GroupAllowancesMixin`` mixin objects when defining your models. See the `Database Mixins`_ section below for more details on what each of the mixins provide.
 
 Mirroring the example above, we can explicitly set allowances for a role via:
 
@@ -445,32 +511,30 @@ Content Authorization
 * ``PermissionsMixin``: A mixin that enables authorization on the owner and group associated with a content item. The database columns included in this mixin are:
 
     - ``owner`` - The owner of the content. Defaults to the current_user when the object was created.
-    - ``owner_permissions`` - The owner permissions associated with the content.
     - ``group`` - A single Group associated with the content.
-    - ``group_permissions`` - The group permissions associated with the content.
+    - ``permissions`` - JSON data encoding permissions for the content.
 
 
 * ``OwnerPermissionsMixin``: A mixin that enables only owner authorization with a content item. The database columns included in this mixin are:
 
     - ``owner`` - The owner of the content. Defaults to the current_user when the object was created.
-    - ``owner_permissions`` - The owner permissions associated with the content.
+    - ``permissions`` - JSON data encoding permissions for the content.
 
 * ``GroupPermissionsMixin``: A mixin that enables only group authorization with a content item. The database columns included in this mixin are:
 
     - ``group`` - A single Group associated with the content.
-    - ``group_permissions`` - The group permissions associated with the content.
+    - ``permissions`` - JSON data encoding permissions for the content.
 
-.. * ``GroupsPermissionsMixin``: A mixin that enables multi-group authorization with a content item. The database columns included in this mixin are:
+* ``MultiGroupPermissionsMixin``: A mixin that enables multi-group authorization with a content item. The database columns included in this mixin are:
 
-..     - ``groups`` - A list of groups associated with the content.
-..     - ``group_permissions`` - The group permissions associated with the content.
+    - ``groups`` - A list of groups associated with the content.
+    - ``permissions`` - JSON data encoding permissions for the content.
 
-.. * ``ComplexPermissionsMixin``: A mixin that enables both user and multi-group authorization with a content item. The database columns included in this mixin are:
+* ``ComplexPermissionsMixin``: A mixin that enables both user and multi-group authorization with a content item. The database columns included in this mixin are:
 
-..     - ``owner`` - The owner of the content. Defaults to the current_user when the object was created.
-..     - ``owner_permissions`` - The owner permissions associated with the content.
-..     - ``groups`` - Groups associated with the content.
-..     - ``group_permissions`` - The group permissions associated with the content.
+    - ``owner`` - The owner of the content. Defaults to the current_user when the object was created.
+    - ``groups`` - Groups associated with the content.
+    - ``permissions`` - JSON data encoding permissions for the content.
 
 
 Role/Group Authorization
@@ -480,17 +544,17 @@ Role/Group Authorization
     
     - ``restrictions``: A list of content restrictions associated with the group.
 
-* ``GroupPermissionsMixin``: A mixin that enables permission checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
+* ``GroupAllowancesMixin``: A mixin that enables permission checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
     
-    - ``permissions``: A list of content permissions associated with the group.
+    - ``allowances``: A list of content permissions associated with the group.
 
 * ``RoleRestrictionsMixin``: A mixin that enables restriction checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
     
     - ``restrictions``: A list of content restrictions associated with the group.
 
-* ``RolePermissionsMixin``: A mixin that enables permission checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
+* ``RoleAllowancesMixin``: A mixin that enables permission checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
     
-    - ``permissions``: A list of content permissions associated with the group.
+    - ``allowances``: A list of content permissions associated with the group.
 
 
 Configuration
@@ -541,7 +605,6 @@ what can be customized:
 
 The code below details how you can override all of these configuration options:
 
-
 .. code-block:: python
 
     from flask import Flask, g
@@ -560,7 +623,6 @@ The code below details how you can override all of these configuration options:
         current_user=get_current_user
         exc=MyUnauthorizedException
     )
-
 
 
 For even more in-depth information on the module and the tools it provides, see the `API <./api.html>`_ section of the documentation.
