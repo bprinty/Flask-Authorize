@@ -2,8 +2,7 @@
 Overview
 ========
 
-Something something ... This simplifies the boilerplate each method requires to enforce permissions, allowing developers to simply focus on code.
-
+Flask-Authorize is a Flask extension designed to simplify the process of incorporating Access Control Lists (ACLs) and Role-Based Access Control (RBAC) into applications housing sensitive data, allowing developers to focus on the actual code for their application instead of logic for enforcing permissions. It uses a unix-like permissions scheme for enforcing access permissions on existing content, and also provides mechanisms for globally enforcing permissions throughout an application.
 
 
 A Minimal Application
