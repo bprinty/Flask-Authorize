@@ -542,19 +542,19 @@ Role/Group Authorization
 
 * ``GroupRestrictionsMixin``: A mixin that enables restriction checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
     
-    - ``restrictions``: A list of content restrictions associated with the group.
+    - ``restrictions``: JSON data encoding content restrictions associated with the group.
 
 * ``GroupAllowancesMixin``: A mixin that enables permission checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
     
-    - ``allowances``: A list of content permissions associated with the group.
+    - ``allowances``: JSON data encoding content permissions associated with the group.
 
 * ``RoleRestrictionsMixin``: A mixin that enables restriction checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
     
-    - ``restrictions``: A list of content restrictions associated with the group.
+    - ``restrictions``: JSON data encoding content restrictions associated with the group.
 
 * ``RoleAllowancesMixin``: A mixin that enables permission checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
     
-    - ``allowances``: A list of content permissions associated with the group.
+    - ``allowances``: JSON data encoding content permissions associated with the group.
 
 
 Configuration
@@ -581,9 +581,9 @@ A list of configuration keys currently understood by the extension:
                                    .. code-block:: python
 
                                         dict(
-                                            user='rud',  # read, update, delete
-                                            group='ru',  # read, update
-                                            other='r'    # read
+                                            user=['read', 'update', 'delete'],
+                                            group=['read', 'update'],
+                                            other=['read']
                                         )
 ================================== =========================================
 
