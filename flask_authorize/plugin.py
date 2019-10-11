@@ -48,6 +48,13 @@ class Authorize(object):
         return
 
     def init_app(self, app, current_user=None):
+        # settings
+        app.config.setdefault('AUTHORIZE_DEFAULT_PERMISSIONS', dict(
+            owner=['read', 'update', 'delete'],
+            group=['read', 'update'],
+            other=['read']
+        ))
+
         self.app = app
 
         # set current user function
@@ -158,9 +165,10 @@ class Authorizer(object):
             return func(*args, **kwargs)
         return inner
 
-    def allowed(self, *args, user=None):
+    def allowed(self, *args, **kwargs):
 
         # look to flask-login for current user
+        user = kwargs.get('user')
         if user is None:
             user = CURRENT_USER()
 
