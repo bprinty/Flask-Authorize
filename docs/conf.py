@@ -141,8 +141,8 @@ html_theme_path = []
 
 # The name of an image file (relative to this directory) to place at the
 # top of the sidebar.
-html_logo = "side-icon.png"
-html_favicon = "side-icon.png"
+html_logo = "_static/side-icon.png"
+html_favicon = "_static/side-icon.png"
 
 # The name of an image file (within the static path) to use as favicon
 # of the docs.  This file should be a Windows icon file (.ico) being
