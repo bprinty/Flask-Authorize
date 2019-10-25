@@ -166,25 +166,13 @@ This uses default content permissions taken from the ``AUTHORIZE_DEFAULT_PERMISS
 
     class Article(db.Model, PermissionsMixin):
         __permissions__ = dict(
-            user='rud', # read + update + delete permissions
-            group='ru', # read + update permissions
-            other='r',  # read permissions
-        )
-
-
-You can also assign permissions with a more explicit syntax:
-
-.. code-block:: python
-
-    class Article(db.Model, PermissionsMixin):
-        __permissions__ = dict(
             owner=['read', 'update', 'delete'],
             group=['read', 'update'],
             other=['read']
         )
 
 
-This more explicit syntax is designed to allow for more customized authorization schemes. For the `Article` example, to add a permission specific to `revoke`-ing an article, you can configure the permissions like so:
+This explicit syntax is designed to allow for more customized authorization schemes. For the `Article` example, to add a permission specific to `revoke`-ing an article, you can configure the permissions like so:
 
 .. code-block:: python
 
@@ -229,7 +217,6 @@ If you want to override default permissions for a piece of content, you can do s
         name='test'
     )
     article.set_permissions(
-        owner='rud'               # read, update, and delete
         group=['read', 'update']  # read and update
         other=2                   # read
     )
@@ -248,13 +235,13 @@ Additionally, permissions can be accessed with the ``permissions`` property on a
 
 .. code-block:: python
 
-    article = Article(name='test')
-    print(article.permissions)
-    # {
-    #     'owner': ['read', 'update', 'delete'],
-    #     'group': ['read', 'update'],
-    #     'other': ['read']
-    # }
+    >>> article = Article(name='test')
+    >>> print(article.permissions)
+    {
+        'owner': ['read', 'update', 'delete'],
+        'group': ['read', 'update'],
+        'other': ['read']
+    }
 
 
 Restrictions
@@ -281,8 +268,8 @@ Once configured with this mixin, restrictions can be set up for users like so:
     role = Role(
         name='reader',
         restrictions=dict(
-            articles='cud'           # create, update, and delete restriction
-            secret_articles='crud'   # create, read, update, and delete restriction
+            articles=['create', 'update', 'delete'],
+            secret_articles=['create', 'read', 'update', 'delete']
         )
     )
     user = User(name='User 1')
@@ -626,3 +613,142 @@ The code below details how you can override all of these configuration options:
 
 
 For even more in-depth information on the module and the tools it provides, see the `API <./api.html>`_ section of the documentation.
+
+
+Code Structure and Clarity
+--------------------------
+
+When used in conjunction with `Flask-Occam <https://github.com/bprinty/Flask-Occam>`_, this plugin enables a very simple and understandable approach to API development. Here is an example of using the authorize decorators in that context:
+
+
+.. code-block:: python
+
+    @app.route('/items')
+    class Items(object):
+
+        def get(self):
+            """
+            GET /items
+
+            Query for existing item in application database.
+
+            Parameters:
+                limit (str): (optional) Return limit for query.
+                offset (str): (optional) Offset for querying results.
+
+            Response:
+                List of item objects. See GET /items/:id for
+                information on return payloads.
+
+            Status:
+                Success: 200 Created
+                Missing: 404 Not Found
+            """
+            items = list(filter(authorize.read, Item.all()))
+            return [x.json() for x in items], 200
+
+        @authorize.create(Item)
+        @validate(name=str)
+        @transactional
+        def post(self):
+            """
+            POST /items
+
+            Query for existing item in application database.
+
+            Arguments:
+                id (int): Identifier for item.
+
+            Parameters:
+                name (str): Name for item
+
+            Response:
+                id (int): Identifier for item.
+                name (str): Item name.
+                url (str): Item URL.
+
+            Status:
+                Success: 201 Created
+                Missing: 404 Not Found
+                Failure: 422 Invalid Request
+            """
+            item = Item.create(**request.json)
+            return item.json(), 201
+
+
+    @app.route('/items/<id(Item):item>')
+    class SingleItem(object):
+        
+        @authorize.read
+        def get(self, item):
+            """
+            GET /items/:id
+
+            Query for existing item in application database.
+
+            Arguments:
+                id (int): Identifier for item.
+
+            Response:
+                id (int): Identifier for item.
+                name (str): Item name.
+
+            Status:
+                Success: 200 OK
+                Missing: 404 Not Found
+            """
+            return jsonify(id=item.id, name=item.name), 200
+
+        @authorize.update
+        @validate(
+            name=optional(str),
+            url=optional(validators.URL())
+        )
+        @transactional
+        @log.info('Changed metadata for item {item.name}')
+        def put(self, item):
+            """
+            PUT /items/:id
+
+            Update existing item in application database.
+
+            Arguments:
+                id (int): Identifier for item.
+
+            Parameters:
+                name (str): (optional) Name for item 
+                url (str): (optional) URL for item 
+
+            Response:
+                id (int): Identifier for item.
+                name (str): Item name.
+                url (str): Item url.
+
+            Status:
+                Success: 200 OK
+                Missing: 404 Not Found
+                Failure: 422 Invalid Request
+            """
+            item.update(**request.json)
+            return item.json(), 200
+
+        @authorize.delete
+        @transactional
+        def delete(self, item):
+            """
+            DELETE /items/:id
+
+            Delete existing item in application database.
+
+            Arguments:
+                id (int): Identifier for item.
+
+            Status:
+                Success: 204 No Content
+                Missing: 404 Not Found
+            """
+            item.delete()
+            return jsonify(msg='Deleted item'), 204
+
+
+For more information on the ``Flask-Occam`` module, see the `documentation <https://Flask-Occam.readthedocs.io>`_.
