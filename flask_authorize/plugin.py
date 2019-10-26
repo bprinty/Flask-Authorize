@@ -54,6 +54,9 @@ class Authorize(object):
             group=['read', 'update'],
             other=['read']
         ))
+        app.config.setdefault('AUTHORIZE_DEFAULT_RESTRICTIONS', [])
+        app.config.setdefault('AUTHORIZE_DEFAULT_ALLOWANCES', ['read', 'update', 'delete'])
+        app.config.setdefault('AUTHORIZE_MODEL_PARSER', 'default') # default, lower, snake
 
         self.app = app
 
