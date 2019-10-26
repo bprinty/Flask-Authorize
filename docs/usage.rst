@@ -512,12 +512,12 @@ Content Authorization
     - ``group`` - A single Group associated with the content.
     - ``permissions`` - JSON data encoding permissions for the content.
 
-* ``MultiGroupPermissionsMixin``: A mixin that enables multi-group authorization with a content item. The database columns included in this mixin are:
+* ``GroupsPermissionsMixin``: A mixin that enables multi-group authorization with a content item. The database columns included in this mixin are:
 
     - ``groups`` - A list of groups associated with the content.
     - ``permissions`` - JSON data encoding permissions for the content.
 
-* ``ComplexPermissionsMixin``: A mixin that enables both user and multi-group authorization with a content item. The database columns included in this mixin are:
+* ``OwnerGroupsPermissionsMixin``: A mixin that enables both user and multi-group authorization with a content item. The database columns included in this mixin are:
 
     - ``owner`` - The owner of the content. Defaults to the current_user when the object was created.
     - ``groups`` - Groups associated with the content.
@@ -527,19 +527,11 @@ Content Authorization
 Role/Group Authorization
 ++++++++++++++++++++++++
 
-* ``GroupRestrictionsMixin``: A mixin that enables restriction checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
+* ``RestrictionsMixin``: A mixin that enables restriction checking on ``Group`` or ``Role`` models associated with the ``current_user``. Database columns included in this mixin are:
     
     - ``restrictions``: JSON data encoding content restrictions associated with the group.
 
-* ``GroupAllowancesMixin``: A mixin that enables permission checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
-    
-    - ``allowances``: JSON data encoding content permissions associated with the group.
-
-* ``RoleRestrictionsMixin``: A mixin that enables restriction checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
-    
-    - ``restrictions``: JSON data encoding content restrictions associated with the group.
-
-* ``RoleAllowancesMixin``: A mixin that enables permission checking on the ``groups`` associated with the ``current_user``. Database columns included in this mixin are:
+* ``AllowancesMixin``: A mixin that enables permission checking on ``Group`` or ``Role`` models associated with the ``current_user``. Database columns included in this mixin are:
     
     - ``allowances``: JSON data encoding content permissions associated with the group.
 
