@@ -65,22 +65,32 @@ def gather_models():
     db = current_app.extensions['sqlalchemy'].db
     for cls in db.Model._decl_class_registry.values():
         if isinstance(cls, type) and issubclass(cls, db.Model):
-
-            # class name
-            if current_app.config['AUTHORIZE_MODEL_PARSER'] == 'default':
-                MODELS[cls.__name__] = cls
-
-            # lowercase name
-            elif current_app.config['AUTHORIZE_MODEL_PARSER'] == 'lower':
-                MODELS[cls.__name__.lower()] = cls
-
-            # snake_case name
-            elif current_app.config['AUTHORIZE_MODEL_PARSER'] == 'snake':
-                words = re.findall(r'([A-Z][0-9a-z]+)', cls.__name__)
-                if len(words) > 1:
-                    alias = '_'.join(map(lambda x: x.lower(), words))
-                    MODELS[alias] = cls
+            MODELS[table_key(cls)] = cls
     return
+
+
+def table_key(cls):
+    """
+    Parse table key from sqlalchemy class, based on user-specified
+    configuration included for extension.
+    """
+    # class name
+    if current_app.config['AUTHORIZE_MODEL_PARSER'] == 'class':
+        return cls.__name__
+
+    # lowercase name
+    elif current_app.config['AUTHORIZE_MODEL_PARSER'] == 'lower':
+        return cls.__name__.lower()
+
+    # snake_case name
+    elif current_app.config['AUTHORIZE_MODEL_PARSER'] == 'snake':
+        words = re.findall(r'([A-Z][0-9a-z]+)', cls.__name__)
+        if len(words) > 1:
+            return '_'.join(map(lambda x: x.lower(), words))
+
+    # table name
+    elif current_app.config['AUTHORIZE_MODEL_PARSER'] == 'table':
+        return cls.__table__.name
 
 
 def default_permissions(cls):
