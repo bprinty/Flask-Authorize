@@ -56,7 +56,7 @@ class Authorize(object):
         ))
         app.config.setdefault('AUTHORIZE_DEFAULT_RESTRICTIONS', [])
         app.config.setdefault('AUTHORIZE_DEFAULT_ALLOWANCES', ['read', 'update', 'delete'])
-        app.config.setdefault('AUTHORIZE_MODEL_PARSER', 'default') # default, lower, snake
+        app.config.setdefault('AUTHORIZE_MODEL_PARSER', 'table')
 
         self.app = app
 
