@@ -276,6 +276,22 @@ class PermissionsMixin(BasePermissionsMixin, OwnerMixin, GroupMixin):
     pass
 
 
+OwnerGroupPermissionsMixin = PermissionsMixin
+
+
+class ComplexPermissionsMixin(BasePermissionsMixin, OwnerMixin, MultiGroupMixin):
+    """
+    Mixin providing owner and multi-group-related database
+    properties for object, in the context of enforcing permissions.
+
+    .. note:: NEEDS MORE DOCUMENTATION AND EXAMPLES
+    """
+    pass
+
+
+OwnerGroupsPermissionMixin = ComplexPermissionsMixin
+
+
 # rbac mixins
 # -----------
 class RestrictionsMixin(object):
