@@ -507,7 +507,7 @@ Content Authorization
     - ``groups`` - Groups associated with the content.
     - ``permissions`` - JSON data encoding permissions for the content.
 
-* ``OwnerPermissionsMixin``: A mixin that enables only owner authorization with a content item. The database columns included in this mixin are:
+* ``OwnerPerhrmissionsMixin``: A mixin that enables only owner authorization with a content item. The database columns included in this mixin are:
 
     - ``owner`` - The owner of the content. Defaults to the current_user when the object was created.
     - ``permissions`` - JSON data encoding permissions for the content.
@@ -563,7 +563,28 @@ A list of configuration keys currently understood by the extension:
                                             user=['read', 'update', 'delete'],
                                             group=['read', 'update'],
                                             other=['read']
+
                                         )
+
+``AUTHORIZE_DEFAULT_ALLOWANCES``   Default allowances for any model instantiated
+                                   with a ``AllowancesMixin``.
+
+``AUTHORIZE_DEFAULT_RESTRICTIONS`` Default restrictions for any model instantiated
+                                   with a ``RestrictionsMixin``.
+
+``AUTHORIZE_MODEL_PARSER``         How to determine key names for authorization or
+                                   restriction data structures. By default, sqlalchemy
+                                   table names will be used. The schemes for parsing
+                                   keys are as follows:
+
+                                     * table - Determine keys from sqlalchemy
+                                       table names
+                                     * class - Determine keys from sqlalchemy
+                                       class names
+                                     * lower - Determine keys from translating
+                                       sqlalchemy class names to lower case.
+                                     * snake - Determine keys from translating
+                                       sqlalchemy class names to snake_case.
 ================================== =========================================
 
 
