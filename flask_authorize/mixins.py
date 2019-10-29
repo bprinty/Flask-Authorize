@@ -20,7 +20,7 @@ from sqlalchemy import TypeDecorator
 
 # types
 # -----
-class Permission(TypeDecorator):
+class JSON(TypeDecorator):
     """
     SQLite, MySQL, and PostgreSQL compatible type
     for json column.
@@ -32,12 +32,7 @@ class Permission(TypeDecorator):
         return object
 
     def process_bind_param(self, value, dialect):
-        # process ambiguous inputs into consistent
-        # internal representation
         return json.dumps(value)
-
-    def process_literal_param(self, value, dialect):
-        return value
 
     def process_result_value(self, value, dialect):
         try:
@@ -94,13 +89,13 @@ def table_key(cls):
         return cls.__table__.name
 
 
-def default_permissions(cls):
+def default_permissions(cls=None):
     """
     Return default permissions for model, falling
     back to app configuration if no default permission
     is explicitly set.
     """
-    if cls.__permissions__ is None:
+    if cls is None or cls.__permissions__ is None:
         return current_app.config['AUTHORIZE_DEFAULT_PERMISSIONS']
     elif isinstance(cls._permissions__, int):
         return parse_permission_set(cls.__permissions__)
@@ -108,14 +103,15 @@ def default_permissions(cls):
         return cls.__permissions__
 
 
-def default_allowances(cls):
+def default_allowances(cls=None):
     """
     Return default permissions for model, falling
     back to app configuration if no default permission
     is explicitly set.
     """
-    if not isinstance(cls.__allowances__, dict):
-        raise AssertionError('Allowances for model {} must be dictionary type!'.format(cls.__name__))
+    if cls is not None:
+        if not isinstance(cls.__allowances__, dict):
+            raise AssertionError('Allowances for model {} must be dictionary type!'.format(cls.__name__))
 
     # if necessary, gather database models to create default
     global MODELS
@@ -127,17 +123,20 @@ def default_allowances(cls):
     }
 
     # overwrite specified allowances
-    return default.update(cls.__allowances__)
+    if cls is not None:
+        default.update(cls.__allowances__)
+    return default
 
 
-def default_restrictions(cls):
+def default_restrictions(cls=None):
     """
     Return default permissions for model, falling
     back to app configuration if no default permission
     is explicitly set.
     """
-    if not isinstance(cls.__restrictions__, dict):
-        raise AssertionError('Restrictions for model {} must be dictionary type!'.format(cls.__name__))
+    if cls is not None:
+        if not isinstance(cls.__restrictions__, dict):
+            raise AssertionError('Restrictions for model {} must be dictionary type!'.format(cls.__name__))
 
     # if necessary, gather database models to create default
     global MODELS
@@ -149,13 +148,20 @@ def default_restrictions(cls):
     }
 
     # overwrite specified allowances
-    return default.update(cls.__restrictions__)
+    if cls is not None:
+        default.update(cls.__restrictions__)
+    return default
 
 
 def permission_list(number):
     """
     Generate permission list from numeric input.
     """
+    if isinstance(number, six.string_types) and len(number) == 1:
+        number = int(number)
+    if not isinstance(number, int):
+        return number
+
     ret = []
     for mask, name in zip([1, 2, 4], ['delete', 'read', 'update']):
         if number & mask:
@@ -199,7 +205,7 @@ class BasePermissionsMixin(object):
     # properties
     @declared_attr
     def permissions(cls):
-        return Column(Permission, default=cls.__permissions__)
+        return Column(JSON, default=default_permissions)
 
     def set_permissions(self, *args, **permissions):
         """
@@ -212,7 +218,7 @@ class BasePermissionsMixin(object):
 
         # set internal permissions object
         self.permissions.update(permissions)
-        return
+        return self
 
 
 class OwnerMixin(object):
@@ -259,24 +265,24 @@ class GroupPermissionsMixin(BasePermissionsMixin, GroupMixin):
     pass
 
 
-class MultiGroupMixin(object):
-    """
-    Mixin providing groups-related database properties
-    for object, in the context of enforcing permissions.
+# class MultiGroupMixin(object):
+#     """
+#     Mixin providing groups-related database properties
+#     for object, in the context of enforcing permissions.
 
-    .. note:: NEEDS MORE DOCUMENTATION AND EXAMPLES
+#     .. note:: NEEDS MORE DOCUMENTATION AND EXAMPLES
 
-    .. note:: NEED TO FIGURE OUT HOW TO AUTOMATICALLY CREATE MAPPING TABLE
-    """
-    @declared_attr
-    def groups(cls):
-        return relationship('Group', backref=backref(
-            'articles', cascade="all, delete-orphan",
-        ))
+#     .. note:: NEED TO FIGURE OUT HOW TO AUTOMATICALLY CREATE MAPPING TABLE
+#     """
+#     @declared_attr
+#     def groups(cls):
+#         return relationship('Group', backref=backref(
+#             'articles', cascade="all, delete-orphan",
+#         ))
 
 
-class MultiGroupPermissionsMixin(BasePermissionsMixin, MultiGroupMixin):
-    pass
+# class MultiGroupPermissionsMixin(BasePermissionsMixin, MultiGroupMixin):
+#     pass
 
 
 class PermissionsMixin(BasePermissionsMixin, OwnerMixin, GroupMixin):
@@ -289,20 +295,20 @@ class PermissionsMixin(BasePermissionsMixin, OwnerMixin, GroupMixin):
     pass
 
 
-OwnerGroupPermissionsMixin = PermissionsMixin
+# OwnerGroupPermissionsMixin = PermissionsMixin
 
 
-class ComplexPermissionsMixin(BasePermissionsMixin, OwnerMixin, MultiGroupMixin):
-    """
-    Mixin providing owner and multi-group-related database
-    properties for object, in the context of enforcing permissions.
+# class ComplexPermissionsMixin(BasePermissionsMixin, OwnerMixin, MultiGroupMixin):
+#     """
+#     Mixin providing owner and multi-group-related database
+#     properties for object, in the context of enforcing permissions.
 
-    .. note:: NEEDS MORE DOCUMENTATION AND EXAMPLES
-    """
-    pass
+#     .. note:: NEEDS MORE DOCUMENTATION AND EXAMPLES
+#     """
+#     pass
 
 
-OwnerGroupsPermissionMixin = ComplexPermissionsMixin
+# OwnerGroupsPermissionMixin = ComplexPermissionsMixin
 
 
 # rbac mixins
@@ -317,7 +323,16 @@ class RestrictionsMixin(object):
 
     @declared_attr
     def restrictions(cls):
-        return Column(Permission, default=default_restrictions)
+        return Column(JSON, default=default_restrictions)
+
+    def set_restrictions(self, **kwargs):
+        # handle numeric permission scheme
+        for key in kwargs:
+            kwargs[key] = permission_list(kwargs[key])
+
+        # set internal restrictions object
+        self.restrictions.update(kwargs)
+        return self
 
 
 class AllowancesMixin(object):
@@ -330,4 +345,13 @@ class AllowancesMixin(object):
 
     @declared_attr
     def allowances(cls):
-        return Column(Permission, default=default_allowances)
+        return Column(JSON, default=default_allowances)
+
+    def set_allowances(self, **kwargs):
+        # handle numeric permission scheme
+        for key in kwargs:
+            kwargs[key] = permission_list(kwargs[key])
+
+        # set internal restrictions object
+        self.allowances.update(kwargs)
+        return self
