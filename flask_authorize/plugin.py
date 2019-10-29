@@ -13,6 +13,9 @@ from functools import wraps
 from flask import current_app
 from werkzeug.exceptions import Unauthorized
 
+from .mixins import default_permissions
+
+
 # constants
 # ---------
 AUTHORIZE_CACHE = dict()
@@ -31,6 +34,15 @@ def flask_login_current_user():
             'Flask-Login is used or that `user` is '
             'specified to authorization method')
     return user
+
+
+def has_permission(expected, actual):
+    """
+    Check if singular set of expected/actual
+    permissions are appropriate.
+    """
+    x = set(expected).intersection(actual)
+    return len(x) == len(expected)
 
 
 # plugin
@@ -69,24 +81,31 @@ class Authorize(object):
         return
 
     @property
+    def delete(self):
+        return Authorizer(permission='delete')
+
+    @property
     def read(self):
-        return Authorizer(permit=2)
+        return Authorizer(permission='read')
 
     @property
-    def write(self):
-        return Authorizer(permit=4)
+    def update(self):
+        return Authorizer(permission='update')
 
-    @property
-    def role(roles, user=None):
-        return Authorizer(roles=roles, permit='rw')
+    def create(self, model):
+        return Authorizer(permission='create', model=model)
 
-    @property
-    def roles(roles, user=None):
-        return Authorizer(roles=roles, permit='rw')
+    ## TODO: FIGURE OUT CUSTOM SCHEMES 
+
+    def has_role(self, role):
+        return Authorizer(has_role=role)
+
+    def in_group(self, group):
+        return Authorizer(in_group=group)
 
 
-# worker
-# ------
+# processor
+# ---------
 class Authorizer(object):
     """
     Decorator for authorizing the ability of the current
@@ -120,17 +139,18 @@ class Authorizer(object):
 
     """
 
-    def __init__(self, permit=None, roles=[]):
-        # TODO
-        # parse permit
-        # -- EITHER NONE, 6, 'rw', 'r', etc ..
-        # TODO: NEED TO FIGURE OUT HOW TO GET MUTLI-DECORATOR SET UP GOING
-        #       NOTE - FIGURE OUT HOW TO RE-DECORATE WITH SAME CLASS AND
-        #       UPDATED PARAMS
-        self.permit = permit
-        if not isinstance(roles, (list, tuple)):
-            roles = [roles]
-        self.roles = roles
+    def __init__(self, permission=None, has_role=None, in_group=None, model=None):
+        def _(arg):
+            if arg is None:
+                arg = []
+            if not isinstance(arg, (list, tuple)):
+                arg = [arg]
+            return arg
+
+        self.permission = _(permission)
+        self.has_role = _(has_role)
+        self.in_group = _(in_group)
+        self.model = _(model)
         return
 
     def __call__(self, *cargs, **ckwargs):
@@ -148,8 +168,10 @@ class Authorizer(object):
         else:
             original = AUTHORIZE_CACHE[func.__name__]
             updated = Authorizer(
-                permit=original.permit | self.permit,
-                roles=original.roles + self.roles
+                permission=original.permission + self.permission,
+                has_role=original.has_role + self.has_role,
+                in_group=original.in_group + self.in_group,
+                model=original.model + self.model
             )
             AUTHORIZE_CACHE[func.__name__] = updated
             del original
@@ -183,13 +205,26 @@ class Authorizer(object):
         if user is None:
             return False
 
-        # authorize if user is part of role
-        if hasattr(user, 'roles'):
+        # authorize if user has relevant role
+        if len(self.has_role) and hasattr(user, 'roles'):
             for role in user.roles:
-                if role.name in self.roles:
+                check = role.name if hasattr(role, 'name') else str(role)
+                if check in self.has_role:
                     return True
 
+        # authorize if user has relevant group
+        if len(self.in_group) and hasattr(user, 'groups'):
+            for group in user.groups:
+                check = group.name if hasattr(group, 'name') else str(group)
+                if check in self.in_group:
+                    return True
+
+        # return if no additional permission check needed
+        if len(self.permission) == 0:
+            return False
+
         # check permissions on individual instances
+        permit = set(self.permission)
         for arg in args:
 
             # only check permissions for items that have set permissions
@@ -198,25 +233,24 @@ class Authorizer(object):
             if not hasattr(arg, 'permissions'):
                 continue
 
-            # configure individual permissions
-            owner = int(arg.permissions) // 10**2 % 10
-            group = int(arg.permissions) // 10**1 % 10
-            other = int(arg.permissions) // 10**0 % 10
-
             # check other permissions
-            if other & self.permit:
+            check = arg.permissions.get('other', {})
+            if has_permission(permit, check):
                 return True
 
             # check user permissions
             if hasattr(arg, 'owner'):
                 if arg.owner == user:
-                    if owner & self.permit:
+                    check = arg.permissions.get('owner', {})
+                    if has_permission(permit, check):
                         return True
 
             # check group permissions
             if hasattr(arg, 'group'):
                 if hasattr(user, 'groups'):
                     if arg.group in user.groups:
-                        if group & self.permit:
+                        check = arg.permissions.get('group', {})
+                        if has_permission(permit, check):
                             return True
+
         return False
