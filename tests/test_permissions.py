@@ -75,6 +75,12 @@ class TestOtherPermissions(object):
         assert not authorize.update(article)
         return
 
+    def test_other_create(self, reader, editor):
+        return
+
+    def test_other_custom(self, reader, editor):
+        return
+
 
 class TestOwnerPermissions(object):
 
@@ -138,6 +144,12 @@ class TestOwnerPermissions(object):
         assert not authorize.update(article)
         return
 
+    def test_owner_create(self, reader, editor):
+        return
+
+    def test_owner_custom(self, reader, editor):
+        return
+
 
 class TestGroupPermissions(object):
 
@@ -199,4 +211,10 @@ class TestGroupPermissions(object):
             group=editor.groups[0]
         ).set_permissions('720')
         assert not authorize.update(article)
+        return
+
+    def test_group_create(self, reader, editor):
+        return
+
+    def test_group_custom(self, reader, editor):
         return
