@@ -13,148 +13,190 @@ from .fixtures import authorize, ArticleFactory
 
 # session
 # -------
-class TestPermissions(object):
+class TestOtherPermissions(object):
 
-    def test_other_read(self, client, users):
-        g.user = None
+    def test_other_delete(self, client, reader, editor):
+        g.user = reader
+
+        # other open read permissions
+        article = ArticleFactory.create(
+            name='Other Delete Open Article',
+            owner=editor,
+            group=editor.groups[0]
+        ).set_permissions('001')
+        assert authorize.delete(article)
+
+        # other closed read permissions
+        article = ArticleFactory.create(
+            name='Other Delete Closed Article',
+            owner=editor,
+            group=editor.groups[0]
+        ).set_permissions('770')
+        assert not authorize.delete(article)
+        return
+
+    def test_other_read(self, client, reader, editor):
+        g.user = reader
 
         # other open read permissions
         article = ArticleFactory.create(
             name='Other Read Open Article',
-            permissions='002',
-            owner=users[1],
-            group=users[1].groups[0]
-        )
-        print(users[1].name)
-        print(article.name)
+            owner=editor,
+            group=editor.groups[0]
+        ).set_permissions('002')
         assert authorize.read(article)
 
         # other closed read permissions
         article = ArticleFactory.create(
             name='Other Read Closed Article',
-            permissions='660',
-            owner=users[1],
-            group=users[1].groups[0]
-        )
+            owner=editor,
+            group=editor.groups[0]
+        ).set_permissions('660')
         assert not authorize.read(article)
         return
 
-    # def test_other_write(self, client, users):
-    #     # other open read permissions
-    #     article = ArticleFactory.create(
-    #         name='Other Write Open Article',
-    #         permissions='004',
-    #         owner=users[1],
-    #         group=users[1].groups[0]
-    #     )
-    #     headers = {}
-    #     response = client.put('/articles/{}'.format(article.id), json=dict(name='test'), headers=headers)
-    #     assert response.status_code == 200
+    def test_other_update(self, reader, editor):
+        g.user = reader
 
-    #     # other closed read permissions
-    #     article = ArticleFactory.create(
-    #         name='Other Write Closed Article',
-    #         permissions='662',
-    #         owner=users[1],
-    #         group=users[1].groups[0]
-    #     )
-    #     headers = {}
-    #     response = client.put('/articles/{}'.format(article.id), json=dict(name='test'), headers=headers)
-    #     assert response.status_code == 401
-    #     return
+        # other open update permissions
+        article = ArticleFactory.create(
+            name='Other Write Open Article',
+            owner=editor,
+            group=editor.groups[0]
+        ).set_permissions('004')
+        assert authorize.update(article)
 
-    # def test_user_read(self, client, users):
-    #     # other open read permissions
-    #     article = ArticleFactory.create(
-    #         name='Read User Open Article',
-    #         permissions='200',
-    #         owner=users[1],
-    #         group=users[0].groups[0]
-    #     )
-    #     headers = {'Authorization': 'Bearer ' + users[1].token}
-    #     response = client.get('/articles/{}'.format(article.id), headers=headers)
-    #     assert response.status_code == 200
+        # other closed update permissions
+        article = ArticleFactory.create(
+            name='Other Write Closed Article',
+            owner=editor,
+            group=editor.groups[0]
+        ).set_permissions('662')
+        assert not authorize.update(article)
+        return
 
-    #     # other closed user read permissions
-    #     article = ArticleFactory.create(
-    #         name='Read User Closed Article',
-    #         permissions='060',
-    #         owner=users[1],
-    #         group=users[0].groups[0]
-    #     )
-    #     headers = {'Authorization': 'Bearer ' + users[1].token}
-    #     response = client.get('/articles/{}'.format(article.id), headers=headers)
-    #     assert response.status_code == 401
-    #     return
 
-    # def test_user_write(self, client, users):
-    #     # other open read permissions
-    #     article = ArticleFactory.create(
-    #         name='Write User Open Article',
-    #         permissions='400',
-    #         owner=users[1],
-    #         group=users[0].groups[0]
-    #     )
-    #     headers = {'Authorization': 'Bearer ' + users[1].token}
-    #     response = client.put('/articles/{}'.format(article.id), json=dict(name='test'), headers=headers)
-    #     assert response.status_code == 200
+class TestOwnerPermissions(object):
 
-    #     # other closed user read permissions
-    #     article = ArticleFactory.create(
-    #         name='Write User Closed Article',
-    #         permissions='260',
-    #         owner=users[1],
-    #         group=users[0].groups[0]
-    #     )
-    #     headers = {'Authorization': 'Bearer ' + users[1].token}
-    #     response = client.put('/articles/{}'.format(article.id), json=dict(name='test'), headers=headers)
-    #     assert response.status_code == 401
-    #     return
+    def test_owner_delete(self, client, reader, editor):
+        g.user = reader
 
-    # def test_group_read(self, client, users):
-    #     # other group read permissions
-    #     article = ArticleFactory.create(
-    #         name='Read Group Open Article',
-    #         permissions='020',
-    #         owner=users[1],
-    #         group=users[0].groups[0]
-    #     )
-    #     headers = {'Authorization': 'Bearer ' + users[0].token}
-    #     response = client.get('/articles/{}'.format(article.id), headers=headers)
-    #     assert response.status_code == 200
+        # other open read permissions
+        article = ArticleFactory.create(
+            name='Owner Delete Open Article',
+            owner=reader,
+            group=editor.groups[0]
+        ).set_permissions('100')
+        assert authorize.delete(article)
 
-    #     # other closed group read permissions
-    #     article = ArticleFactory.create(
-    #         name='Read Group Closed Article',
-    #         permissions='600',
-    #         owner=users[1],
-    #         group=users[0].groups[0]
-    #     )
-    #     headers = {'Authorization': 'Bearer ' + users[0].token}
-    #     response = client.get('/articles/{}'.format(article.id), headers=headers)
-    #     assert response.status_code == 401
-    #     return
+        # other closed read permissions
+        article = ArticleFactory.create(
+            name='Owner Delete Closed Article',
+            owner=reader,
+            group=editor.groups[0]
+        ).set_permissions('070')
+        assert not authorize.delete(article)
+        return
 
-    # def test_group_write(self, client, users):
-    #     # other group read permissions
-    #     article = ArticleFactory.create(
-    #         name='Write Group Open Article',
-    #         permissions='040',
-    #         owner=users[1],
-    #         group=users[0].groups[0]
-    #     )
-    #     headers = {'Authorization': 'Bearer ' + users[0].token}
-    #     response = client.put('/articles/{}'.format(article.id), json=dict(name='test'), headers=headers)
-    #     assert response.status_code == 200
+    def test_owner_read(self, client, reader, editor):
+        g.user = reader
 
-    #     # other closed group read permissions
-    #     article = ArticleFactory.create(
-    #         name='Write Group Closed Article',
-    #         permissions='620',
-    #         owner=users[1],
-    #         group=users[0].groups[0]
-    #     )
-    #     headers = {'Authorization': 'Bearer ' + users[0].token}
-    #     response = client.put('/articles/{}'.format(article.id), json=dict(name='test'), headers=headers)
-    #     assert response.status_code == 401
-    #     return
+        # other open read permissions
+        article = ArticleFactory.create(
+            name='Owner Read Open Article',
+            owner=reader,
+            group=editor.groups[0]
+        ).set_permissions('200')
+        assert authorize.read(article)
+
+        # other closed read permissions
+        article = ArticleFactory.create(
+            name='Owner Read Closed Article',
+            owner=reader,
+            group=editor.groups[0]
+        ).set_permissions('170')
+        assert not authorize.read(article)
+        return
+
+    def test_owner_update(self, reader, editor):
+        g.user = reader
+
+        # other open update permissions
+        article = ArticleFactory.create(
+            name='Owner Write Open Article',
+            owner=reader,
+            group=editor.groups[0]
+        ).set_permissions('400')
+        assert authorize.update(article)
+
+        # other closed update permissions
+        article = ArticleFactory.create(
+            name='Owner Write Closed Article',
+            owner=reader,
+            group=editor.groups[0]
+        ).set_permissions('270')
+        assert not authorize.update(article)
+        return
+
+
+class TestGroupPermissions(object):
+
+    def test_group_delete(self, client, reader, editor):
+        g.user = editor
+
+        # other open read permissions
+        article = ArticleFactory.create(
+            name='Group Delete Open Article',
+            owner=reader,
+            group=editor.groups[0]
+        ).set_permissions('010')
+        assert authorize.delete(article)
+
+        # other closed read permissions
+        article = ArticleFactory.create(
+            name='Group Delete Closed Article',
+            owner=reader,
+            group=editor.groups[0]
+        ).set_permissions('700')
+        assert not authorize.delete(article)
+        return
+
+    def test_group_read(self, client, reader, editor):
+        g.user = editor
+
+        # other open read permissions
+        article = ArticleFactory.create(
+            name='Group Read Open Article',
+            owner=reader,
+            group=editor.groups[0]
+        ).set_permissions('020')
+        assert authorize.read(article)
+
+        # other closed read permissions
+        article = ArticleFactory.create(
+            name='Group Read Closed Article',
+            owner=reader,
+            group=editor.groups[0]
+        ).set_permissions('710')
+        assert not authorize.read(article)
+        return
+
+    def test_group_update(self, reader, editor):
+        g.user = editor
+
+        # other open update permissions
+        article = ArticleFactory.create(
+            name='Group Write Open Article',
+            owner=reader,
+            group=editor.groups[0]
+        ).set_permissions('040')
+        assert authorize.update(article)
+
+        # other closed update permissions
+        article = ArticleFactory.create(
+            name='Group Write Closed Article',
+            owner=reader,
+            group=editor.groups[0]
+        ).set_permissions('720')
+        assert not authorize.update(article)
+        return
