@@ -14,9 +14,9 @@ from .fixtures import authorize, Article, ArticleFactory
 # authorizers
 # -----------
 @authorize.read
-@authorize.write(Article)
+@authorize.create(Article)
 @authorize.in_group('test')
-def in_group_or_read_write(article):
+def in_group_or_read_or_create(article):
     pass
 
 
@@ -28,9 +28,9 @@ def has_role_or_read(article):
 
 # tests
 # -----
-class TestComplex(object):
+class TestIntegration(object):
 
-    def test_in_group_or_read_write(self, client, users):
+    def test_in_group_or_read_or_create(self, client, users):
         return
 
     def test_has_role_or_read(self, client, users):
