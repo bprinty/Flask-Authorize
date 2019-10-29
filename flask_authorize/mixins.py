@@ -7,6 +7,7 @@
 
 # imports
 # -------
+import six
 import re
 import json
 from flask import current_app
@@ -168,6 +169,8 @@ def parse_permission_set(number):
     explicit permission scheme. Note that this method
     does not account for custom content permissions.
     """
+    if isinstance(number, six.string_types) and len(number) == 3:
+        number = int(number)
     if not isinstance(number, int):
         return number
 
