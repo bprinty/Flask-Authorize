@@ -464,27 +464,27 @@ Return ``True`` if the ``current_user`` is not associated with the specified ``R
         pass
 
 
-authorize.is_role('<role>')
-+++++++++++++++++++++++++++
+.. authorize.is_role('<role>')
+.. +++++++++++++++++++++++++++
 
-Return ``True`` if the ``current_user`` has a ``current_role`` property that matches the specified ``Role``. For example:
+.. Return ``True`` if the ``current_user`` has a ``current_role`` property that matches the specified ``Role``. For example:
 
-.. code-block:: python
+.. .. code-block:: python
 
-    # decorator
-    @authorize.is_role('admin')
-    def admin_func(article):
-        # raise Unauthorized if the `current_user` is not
-        # assuming the `admin` role.
-        pass
+..     # decorator
+..     @authorize.is_role('admin')
+..     def admin_func(article):
+..         # raise Unauthorized if the `current_user` is not
+..         # assuming the `admin` role.
+..         pass
 
-    # explicit
-    def admin_handler(article):
-        if not authorize.is_role('admin'):
-            raise Unauthorized
-        pass
+..     # explicit
+..     def admin_handler(article):
+..         if not authorize.is_role('admin'):
+..             raise Unauthorized
+..         pass
 
-This authorization mechanism can be used in conjunction with ``User`` models using the ``UserRoleMixin``.
+.. This authorization mechanism can be used in conjunction with ``User`` models using the ``UserRoleMixin``.
 
 
 Database Mixins
@@ -501,13 +501,13 @@ Content Authorization
     - ``group`` - A single Group associated with the content.
     - ``permissions`` - JSON data encoding permissions for the content.
 
-* ``ComplexPermissionsMixin``: A mixin that enables both user and multi-group authorization with a content item. The database columns included in this mixin are:
+.. * ``ComplexPermissionsMixin``: A mixin that enables both user and multi-group authorization with a content item. The database columns included in this mixin are:
 
-    - ``owner`` - The owner of the content. Defaults to the current_user when the object was created.
-    - ``groups`` - Groups associated with the content.
-    - ``permissions`` - JSON data encoding permissions for the content.
+..     - ``owner`` - The owner of the content. Defaults to the current_user when the object was created.
+..     - ``groups`` - Groups associated with the content.
+..     - ``permissions`` - JSON data encoding permissions for the content.
 
-* ``OwnerPerhrmissionsMixin``: A mixin that enables only owner authorization with a content item. The database columns included in this mixin are:
+* ``OwnerPermissionsMixin``: A mixin that enables only owner authorization with a content item. The database columns included in this mixin are:
 
     - ``owner`` - The owner of the content. Defaults to the current_user when the object was created.
     - ``permissions`` - JSON data encoding permissions for the content.
@@ -517,10 +517,10 @@ Content Authorization
     - ``group`` - A single Group associated with the content.
     - ``permissions`` - JSON data encoding permissions for the content.
 
-* ``GroupsPermissionsMixin``: A mixin that enables multi-group authorization with a content item. The database columns included in this mixin are:
+.. * ``GroupsPermissionsMixin``: A mixin that enables multi-group authorization with a content item. The database columns included in this mixin are:
 
-    - ``groups`` - A list of groups associated with the content.
-    - ``permissions`` - JSON data encoding permissions for the content.
+..     - ``groups`` - A list of groups associated with the content.
+..     - ``permissions`` - JSON data encoding permissions for the content.
 
 
 
