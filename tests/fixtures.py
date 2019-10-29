@@ -13,7 +13,7 @@ from flask import Flask, request, jsonify, g
 from werkzeug.exceptions import Unauthorized, NotFound
 from flask_sqlalchemy import SQLAlchemy
 from flask_authorize import Authorize, PermissionsMixin, AllowancesMixin, RestrictionsMixin
-from flask_authorize.mixins import default_allowances, default_restrictions
+from flask_authorize.mixins import default_allowances, default_restrictions, default_permissions
 
 from . import SANDBOX
 
@@ -121,6 +121,7 @@ class ArticleFactory(factory.alchemy.SQLAlchemyModelFactory):
     id = factory.Sequence(lambda x: x + 100)
     name = factory.Faker('name')
     owner = factory.SubFactory(UserFactory)
+    permissions = factory.LazyFunction(default_permissions)
 
     class Meta:
         model = Article
@@ -130,38 +131,35 @@ class ArticleFactory(factory.alchemy.SQLAlchemyModelFactory):
 # fixtures
 # --------
 @pytest.fixture(scope='session')
-def users(client):
-
-    # roles
-    admin = RoleFactory.create(name='admin')
-
-    # groups
-    editors = GroupFactory.create(name='editors')
-    readers = GroupFactory.create(name='readers')
-
-    # users
-    admin = UserFactory.create(
+def admin(client):
+    yield UserFactory.create(
         name='admin',
-        roles=[admin]
     )
-    editor = UserFactory.create(
-        name='editor',
-        groups=[readers, editors]
-    )
-    reader = UserFactory.create(
+
+
+@pytest.fixture(scope='session')
+def reader(client):
+    group = GroupFactory.create(name='readers')
+    role = RoleFactory.create(name='readers')
+    yield UserFactory.create(
         name='reader',
-        groups=[readers]
+        groups=[group],
+        roles=[role]
     )
-    users = [admin, editor, reader]
-
-    from flask import g
-    g.user = admin
-
-    yield users
-
-    return
 
 
+@pytest.fixture(scope='session')
+def editor(client):
+    group = GroupFactory.create(name='editors')
+    role = RoleFactory.create(name='editors')
+    yield UserFactory.create(
+        name='editor',
+        groups=[group],
+        roles=[role]
+    )
+
+
+@pytest.fixture(scope='session')
 def allowed(client):
     role = RoleFactory.create(
         name='allowed',
@@ -173,6 +171,7 @@ def allowed(client):
     )
 
 
+@pytest.fixture(scope='session')
 def unallowed(client):
     role = RoleFactory.create(
         name='unallowed',
@@ -184,6 +183,7 @@ def unallowed(client):
     )
 
 
+@pytest.fixture(scope='session')
 def restricted(client):
     group = GroupFactory.create(
         name='restricted',
@@ -195,6 +195,7 @@ def restricted(client):
     )
 
 
+@pytest.fixture(scope='session')
 def unrestricted(client):
     group = GroupFactory.create(
         name='unrestricted',
