@@ -7,6 +7,7 @@
 
 # imports
 # -------
+from flask import g
 import pytest
 from .fixtures import authorize, Article, ArticleFactory
 
@@ -30,7 +31,14 @@ def has_role_or_read(article):
 # -----
 class TestIntegration(object):
 
-    def test_in_group_or_read_or_create(self, client, users):
+    def test_in_group_or_read_or_create(self, client, reader, editor):
+        article = ArticleFactory.create(
+            name='Other Delete Open Article',
+            owner=editor,
+            group=editor.groups[0]
+        ).set_permissions('001')
+
+        g.user = reader
         return
 
     def test_has_role_or_read(self, client, users):
