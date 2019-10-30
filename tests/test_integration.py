@@ -9,7 +9,7 @@
 # -------
 from flask import g
 import pytest
-from .fixtures import authorize, Article, ArticleFactory
+from .fixtures import authorize, db, Article, ArticleFactory
 
 
 # authorizers
@@ -29,6 +29,28 @@ def has_role_or_read(article):
 
 # tests
 # -----
+class TestDefaults(object):
+
+    def test_defaults(self, client):
+        from flask_authorize import default_permissions
+        assert default_permissions() == dict(
+            owner=['delete', 'read', 'update'],
+            group=['read', 'update'],
+            other=['read']
+        )
+
+        from flask_authorize import default_allowances
+        assert default_allowances() == dict(
+            articles=['create', 'delete', 'read', 'update'],
+        )
+
+        from flask_authorize import default_restrictions
+        assert default_restrictions() == dict(
+            articles=[]
+        )
+        return
+
+
 class TestIntegration(object):
 
     def test_in_group_or_read_or_create(self, client, reader, editor):
@@ -41,5 +63,31 @@ class TestIntegration(object):
         g.user = reader
         return
 
-    def test_has_role_or_read(self, client, users):
+    def test_has_role_or_read(self, client):
+        return
+
+    def test_multiple_permissions(self, client, reader, editor):
+        allow = ArticleFactory.create(
+            name='Multiple Permissions Open Article',
+            owner=reader,
+            group=reader.groups[0]
+        ).set_permissions('777')
+        deny = ArticleFactory.create(
+            name='Multiple Permissions Closed Article',
+            owner=reader,
+            group=reader.groups[0]
+        ).set_permissions('000')
+
+        g.user = reader
+        assert authorize.delete(allow)
+        assert not authorize.delete(deny)
+        assert not authorize.delete(allow, deny)
+
+        assert authorize.read(allow)
+        assert not authorize.read(deny)
+        assert not authorize.read(allow, deny)
+
+        assert authorize.update(allow)
+        assert not authorize.update(deny)
+        assert not authorize.update(allow, deny)
         return
