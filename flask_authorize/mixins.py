@@ -56,11 +56,14 @@ def gather_models():
     from flask import current_app
     if 'sqlalchemy' not in current_app.extensions:
         return
+    check = current_app.config['AUTHORIZE_IGNORE_PROPERTY']
 
     # inspect current models and add to map
     db = current_app.extensions['sqlalchemy'].db
     for cls in db.Model._decl_class_registry.values():
         if isinstance(cls, type) and issubclass(cls, db.Model):
+            if hasattr(cls, check) and not getattr(cls, check):
+                continue
             MODELS[table_key(cls)] = cls
     return
 
