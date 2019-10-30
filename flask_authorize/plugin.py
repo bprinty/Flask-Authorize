@@ -13,7 +13,7 @@ from functools import wraps
 from flask import current_app
 from werkzeug.exceptions import Unauthorized
 
-from .mixins import default_permissions
+from .mixins import default_permissions, default_allowances, table_key
 
 
 # constants
@@ -102,6 +102,88 @@ class Authorize(object):
 
     def in_group(self, group):
         return Authorizer(in_group=group)
+
+
+# helpers
+# -------
+def user_has_role(user, roles):
+    """
+    Check if specified user has one of the specified roles.
+    """
+    if not hasattr(user, 'roles'):
+        return False
+    for role in user.roles:
+        check = role.name if hasattr(role, 'name') else str(role)
+        if check in roles:
+            return True
+    return False
+
+
+def user_in_group(user, groups):
+    """
+    Check if specified user is in one of the specified groups.
+    """
+    if not hasattr(user, 'groups'):
+        return False
+    for group in user.groups:
+        check = group.name if hasattr(group, 'name') else str(group)
+        if check in groups:
+            return True
+    return False
+
+
+def user_is_restricted(user, operation, obj):
+    key = table_key(obj.__class__)
+
+    # gather credentials to check
+    credentials = []
+    if hasattr(user, 'roles'):
+        credentials.extend(user.roles)
+    if hasattr(user, 'groups'):
+        credentials.extend(user.groups)
+    if not len(credentials):
+        return False
+
+    # check all credentials
+    for cred in credentials:
+        if hasattr(cred, 'restrictions') and cred.restrictions is not None:
+            check = set(cred.restrictions.get(key, []))
+            if len(check.intersection(operation)):
+                return True
+    return False
+
+
+def user_is_allowed(user, operation, obj):
+    key = table_key(obj.__class__)
+
+    # gather credentials to check
+    credentials = []
+    if hasattr(user, 'roles'):
+        credentials.extend(user.roles)
+    if hasattr(user, 'groups'):
+        credentials.extend(user.groups)
+    if not len(credentials):
+        return True
+
+    # gather allowances from credentials
+    allowances, default = [], default_allowances()
+    for cred in credentials:
+
+        # if not restricting allowances on one
+        # of the credentials, it's allowed
+        if not hasattr(cred, 'allowances'):
+            return True
+        if cred.allowances is None:
+            return True
+
+        allowances.extend(cred.allowances.get(key, default))
+
+    # check allowances
+    check = set(allowances).intersection(operation)
+    if len(check) == len(operation):
+        return True
+
+    return False
 
 
 # processor
@@ -206,25 +288,21 @@ class Authorizer(object):
             return False
 
         # authorize if user has relevant role
-        if len(self.has_role) and hasattr(user, 'roles'):
-            for role in user.roles:
-                check = role.name if hasattr(role, 'name') else str(role)
-                if check in self.has_role:
-                    return True
+        if len(self.has_role):
+            if user_has_role(user, self.has_role):
+                return True
 
         # authorize if user has relevant group
-        if len(self.in_group) and hasattr(user, 'groups'):
-            for group in user.groups:
-                check = group.name if hasattr(group, 'name') else str(group)
-                if check in self.in_group:
-                    return True
+        if len(self.in_group):
+            if user_in_group(user, self.in_group):
+                return True
 
         # return if no additional permission check needed
         if len(self.permission) == 0:
             return False
 
         # check permissions on individual instances
-        permit = set(self.permission)
+        operation = set(self.permission)
         for arg in args:
 
             # only check permissions for items that have set permissions
@@ -233,16 +311,23 @@ class Authorizer(object):
             if not hasattr(arg, 'permissions'):
                 continue
 
+            # # check role restrictions/allowances
+            if user_is_restricted(user, operation, arg):
+                return False
+
+            if not user_is_allowed(user, operation, arg):
+                return False
+
             # check other permissions
             check = arg.permissions.get('other', {})
-            if has_permission(permit, check):
+            if has_permission(operation, check):
                 return True
 
             # check user permissions
             if hasattr(arg, 'owner'):
                 if arg.owner == user:
                     check = arg.permissions.get('owner', {})
-                    if has_permission(permit, check):
+                    if has_permission(operation, check):
                         return True
 
             # check group permissions
@@ -250,7 +335,7 @@ class Authorizer(object):
                 if hasattr(user, 'groups'):
                     if arg.group in user.groups:
                         check = arg.permissions.get('group', {})
-                        if has_permission(permit, check):
+                        if has_permission(operation, check):
                             return True
 
         return False
