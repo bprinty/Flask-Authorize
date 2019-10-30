@@ -187,7 +187,7 @@ def unallowed(client):
 def restricted(client):
     group = GroupFactory.create(
         name='restricted',
-        restrictions={'articles': default_allowances()}
+        restrictions=default_allowances()
     )
     yield UserFactory.create(
         name='restricted',
@@ -199,7 +199,7 @@ def restricted(client):
 def unrestricted(client):
     group = GroupFactory.create(
         name='unrestricted',
-        restrictions={'articles': default_restrictions()}
+        restrictions=default_restrictions()
     )
     yield UserFactory.create(
         name='unrestricted',
