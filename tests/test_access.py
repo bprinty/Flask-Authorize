@@ -14,15 +14,34 @@ from .fixtures import ArticleFactory, authorize
 
 # tests
 # -----
-class TestAllowances(object):
+class TestAccessControl(object):
 
-    def test_allowances(self, client, allowed, unallowed):
+    def test_allowances(self, client, reader, allowed, unallowed):
+        article = ArticleFactory.create(
+            name='Allowances Open Article',
+            owner=reader,
+            group=reader.groups[0]
+        ).set_permissions('777')
+
+        g.user = allowed
+        assert authorize.read(article)
+
+        g.user = unallowed
+        assert not authorize.read(article)
         return
 
+    def test_restrictions(self, client, reader, restricted, unrestricted):
+        article = ArticleFactory.create(
+            name='Restrictions Open Article',
+            owner=reader,
+            group=reader.groups[0]
+        ).set_permissions('777')
 
-class TestRestrictions(object):
+        g.user = unrestricted
+        assert authorize.read(article)
 
-    def test_restrictions(self, client, restricted, unrestricted):
+        g.user = restricted
+        assert not authorize.read(article)
         return
 
 
@@ -30,7 +49,7 @@ class TestCredentials(object):
 
     def test_in_group(self, client, admin, reader, editor):
         article = ArticleFactory.create(
-            name='Closed Article',
+            name='In-Group Closed Article',
             owner=editor,
             group=editor.groups[0]
         ).set_permissions('000')
@@ -46,7 +65,7 @@ class TestCredentials(object):
 
     def test_has_role(self, client, reader, editor):
         article = ArticleFactory.create(
-            name='Closed Article',
+            name='Has-Role Closed Article',
             owner=editor,
             group=editor.groups[0]
         ).set_permissions('000')
