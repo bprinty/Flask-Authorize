@@ -22,8 +22,8 @@ AUTHORIZE_CACHE = dict()
 CURRENT_USER = None
 
 
-# helpers
-# -------
+# default customizations
+# ----------------------
 def flask_login_current_user():
     try:
         from flask_login import current_user
@@ -34,15 +34,6 @@ def flask_login_current_user():
             'Flask-Login is used or that `user` is '
             'specified to authorization method')
     return user
-
-
-def has_permission(expected, actual):
-    """
-    Check if singular set of expected/actual
-    permissions are appropriate.
-    """
-    x = set(expected).intersection(actual)
-    return len(x) == len(expected)
 
 
 # plugin
@@ -62,13 +53,14 @@ class Authorize(object):
     def init_app(self, app, current_user=None):
         # settings
         app.config.setdefault('AUTHORIZE_DEFAULT_PERMISSIONS', dict(
-            owner=['read', 'update', 'delete'],
+            owner=['delete', 'read', 'update'],
             group=['read', 'update'],
             other=['read']
         ))
         app.config.setdefault('AUTHORIZE_DEFAULT_RESTRICTIONS', [])
-        app.config.setdefault('AUTHORIZE_DEFAULT_ALLOWANCES', ['read', 'update', 'delete'])
+        app.config.setdefault('AUTHORIZE_DEFAULT_ALLOWANCES', ['create', 'delete', 'read', 'update'])
         app.config.setdefault('AUTHORIZE_MODEL_PARSER', 'table')
+        app.config.setdefault('AUTHORIZE_IGNORE_PROPERTY', '__check_access__')
 
         self.app = app
 
@@ -106,6 +98,15 @@ class Authorize(object):
 
 # helpers
 # -------
+def has_permission(expected, actual):
+    """
+    Check if singular set of expected/actual
+    permissions are appropriate.
+    """
+    x = set(expected).intersection(actual)
+    return len(x) == len(expected)
+
+
 def user_has_role(user, roles):
     """
     Check if specified user has one of the specified roles.
@@ -301,12 +302,16 @@ class Authorizer(object):
         if len(self.permission) == 0:
             return False
 
-        # check permissions on individual instances
+        # check permissions on individual instances - all objects
+        # must have authorization to proceed.
         operation = set(self.permission)
         for arg in args:
 
             # only check permissions for items that have set permissions
             if not isinstance(arg.__class__, six.class_types):
+                continue
+            check = current_app.config['AUTHORIZE_IGNORE_PROPERTY']
+            if hasattr(arg, check) and not getattr(arg, check):
                 continue
             if not hasattr(arg, 'permissions'):
                 continue
@@ -319,23 +324,23 @@ class Authorizer(object):
                 return False
 
             # check other permissions
-            check = arg.permissions.get('other', {})
-            if has_permission(operation, check):
-                return True
+            check = arg.permissions.get('other', [])
+            permitted = has_permission(operation, check)
 
             # check user permissions
             if hasattr(arg, 'owner'):
                 if arg.owner == user:
-                    check = arg.permissions.get('owner', {})
-                    if has_permission(operation, check):
-                        return True
+                    check = arg.permissions.get('owner', [])
+                    permitted |= has_permission(operation, check)
 
             # check group permissions
             if hasattr(arg, 'group'):
                 if hasattr(user, 'groups'):
                     if arg.group in user.groups:
-                        check = arg.permissions.get('group', {})
-                        if has_permission(operation, check):
-                            return True
+                        check = arg.permissions.get('group', [])
+                        permitted |= has_permission(operation, check)
 
-        return False
+            if not permitted:
+                return False
+
+        return True
