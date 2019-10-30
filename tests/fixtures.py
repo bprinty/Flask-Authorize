@@ -52,6 +52,7 @@ UserRole = db.Table(
 
 class User(db.Model):
     __tablename__ = 'users'
+    __check_access__ = False
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False, unique=True, index=True)
@@ -61,6 +62,7 @@ class User(db.Model):
 
 class Group(db.Model, RestrictionsMixin):
     __tablename__ = 'groups'
+    __check_access__ = False
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False, unique=True, index=True)
@@ -70,6 +72,7 @@ class Group(db.Model, RestrictionsMixin):
 
 class Role(db.Model, AllowancesMixin):
     __tablename__ = 'roles'
+    __check_access__ = False
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False, unique=True, index=True)
@@ -94,6 +97,7 @@ class GroupFactory(factory.alchemy.SQLAlchemyModelFactory):
     class Meta:
         model = Group
         sqlalchemy_session = db.session
+        sqlalchemy_session_persistence = 'commit'
 
 
 class RoleFactory(factory.alchemy.SQLAlchemyModelFactory):
@@ -104,6 +108,7 @@ class RoleFactory(factory.alchemy.SQLAlchemyModelFactory):
     class Meta:
         model = Role
         sqlalchemy_session = db.session
+        sqlalchemy_session_persistence = 'commit'
 
 
 class UserFactory(factory.alchemy.SQLAlchemyModelFactory):
@@ -114,6 +119,7 @@ class UserFactory(factory.alchemy.SQLAlchemyModelFactory):
     class Meta:
         model = User
         sqlalchemy_session = db.session
+        sqlalchemy_session_persistence = 'commit'
 
 
 class ArticleFactory(factory.alchemy.SQLAlchemyModelFactory):
@@ -126,6 +132,7 @@ class ArticleFactory(factory.alchemy.SQLAlchemyModelFactory):
     class Meta:
         model = Article
         sqlalchemy_session = db.session
+        sqlalchemy_session_persistence = 'commit'
 
 
 # fixtures
@@ -191,7 +198,7 @@ def restricted(client):
     )
     yield UserFactory.create(
         name='restricted',
-        roles=[group]
+        groups=[group]
     )
 
 
@@ -203,5 +210,5 @@ def unrestricted(client):
     )
     yield UserFactory.create(
         name='unrestricted',
-        roles=[group]
+        groups=[group]
     )
