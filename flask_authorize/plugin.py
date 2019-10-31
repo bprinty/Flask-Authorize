@@ -20,6 +20,7 @@ from .mixins import default_permissions, default_allowances, table_key
 # ---------
 AUTHORIZE_CACHE = dict()
 CURRENT_USER = None
+EXCEPTION = None
 
 
 # default customizations
@@ -44,12 +45,25 @@ class Authorize(object):
     routing.
     """
 
-    def __init__(self, app=None, current_user=flask_login_current_user):
+    def __init__(self, app=None, current_user=flask_login_current_user, exception=Unauthorized):
         if app is not None:
-            self.init_app(app, current_user=current_user)
+            self.init_app(app)
+
+        # set current user function
+        if current_user is not None:
+            if not callable(current_user):
+                raise AssertionError('Error: `current_user` input must be callable.')
+            global CURRENT_USER
+            CURRENT_USER = current_user
+
+        if exception is not None:
+            if not isinstance(exception, type):
+                raise AssertionError('Error: `exception` input must be Exception type')
+            global EXCEPTION
+            EXCEPTION = Unauthorized
         return
 
-    def init_app(self, app, current_user=None):
+    def init_app(self, app):
         # settings
         app.config.setdefault('AUTHORIZE_DEFAULT_PERMISSIONS', dict(
             owner=['delete', 'read', 'update'],
@@ -61,16 +75,10 @@ class Authorize(object):
         app.config.setdefault('AUTHORIZE_MODEL_PARSER', 'table')
         app.config.setdefault('AUTHORIZE_IGNORE_PROPERTY', '__check_access__')
         app.config.setdefault('AUTHORIZE_ALLOW_ANONYMOUS_ACTIONS', False)
+
+        # add to extensions dict for access
         app.extensions['authorize'] = self
-
         self.app = app
-
-        # set current user function
-        if current_user is not None:
-            if not callable(current_user):
-                raise AssertionError('Error: `current_user` input must be callable.')
-            global CURRENT_USER
-            CURRENT_USER = current_user
         return
 
     def __getattr__(self, key):
