@@ -90,6 +90,26 @@ class TestOtherPermissions(object):
         return
 
     def test_other_custom(self, reader, editor):
+        # other closed custom permissions
+        g.user = None
+        article = ArticleFactory.create(
+            name='Other Custom Closed Article',
+            owner=editor,
+            group=editor.groups[0]
+        )
+        g.user = reader
+        assert not authorize.custom(article)
+
+        # other open custom permissions
+        g.user = None
+        article = ArticleFactory.create(
+            name='Other Custom Open Article',
+            owner=editor,
+            group=editor.groups[0]
+        ).set_permissions(other=['custom'])
+
+        g.user = reader
+        assert authorize.custom(article)
         return
 
 
@@ -156,6 +176,23 @@ class TestOwnerPermissions(object):
         return
 
     def test_owner_custom(self, reader, editor):
+        g.user = reader
+
+        # other closed update permissions
+        article = ArticleFactory.create(
+            name='Owner Custom Closed Article',
+            owner=reader,
+            group=editor.groups[0]
+        )
+        assert not authorize.custom(article)
+
+        # other open update permissions
+        article = ArticleFactory.create(
+            name='Owner Custom Open Article',
+            owner=reader,
+            group=editor.groups[0]
+        ).set_permissions(owner=['custom'])
+        assert authorize.custom(article)
         return
 
 
@@ -222,4 +259,21 @@ class TestGroupPermissions(object):
         return
 
     def test_group_custom(self, reader, editor):
+        g.user = editor
+
+        # other closed update permissions
+        article = ArticleFactory.create(
+            name='Group Write Closed Article',
+            owner=reader,
+            group=editor.groups[0]
+        )
+        assert not authorize.custom(article)
+
+        # other open update permissions
+        article = ArticleFactory.create(
+            name='Group Write Open Article',
+            owner=reader,
+            group=editor.groups[0]
+        ).set_permissions(group=['custom'])
+        assert authorize.custom(article)
         return

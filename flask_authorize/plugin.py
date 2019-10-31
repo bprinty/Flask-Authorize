@@ -47,7 +47,6 @@ class Authorize(object):
     def __init__(self, app=None, current_user=flask_login_current_user):
         if app is not None:
             self.init_app(app, current_user=current_user)
-
         return
 
     def init_app(self, app, current_user=None):
@@ -74,6 +73,9 @@ class Authorize(object):
             CURRENT_USER = current_user
         return
 
+    def __getattr__(self, key):
+        return Authorizer(permission=key)
+
     @property
     def delete(self):
         return Authorizer(permission='delete')
@@ -88,8 +90,6 @@ class Authorize(object):
 
     def create(self, *args):
         return Authorizer(create=args)
-
-    ## TODO: FIGURE OUT CUSTOM SCHEMES 
 
     def has_role(self, *args):
         return Authorizer(has_role=args)
