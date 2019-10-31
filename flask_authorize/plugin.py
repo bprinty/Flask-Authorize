@@ -84,16 +84,16 @@ class Authorize(object):
     def update(self):
         return Authorizer(permission='update')
 
-    def create(self, model):
-        return Authorizer(permission='create', model=model)
+    def create(self, *args):
+        return Authorizer(create=args)
 
     ## TODO: FIGURE OUT CUSTOM SCHEMES 
 
-    def has_role(self, role):
-        return Authorizer(has_role=role)
+    def has_role(self, *args):
+        return Authorizer(has_role=args)
 
-    def in_group(self, group):
-        return Authorizer(in_group=group)
+    def in_group(self, *args):
+        return Authorizer(in_group=args)
 
 
 # helpers
@@ -134,7 +134,7 @@ def user_in_group(user, groups):
 
 
 def user_is_restricted(user, operation, obj):
-    key = table_key(obj.__class__)
+    key = table_key(obj if isinstance(obj, type) else obj.__class__)
 
     # gather credentials to check
     credentials = []
@@ -155,7 +155,7 @@ def user_is_restricted(user, operation, obj):
 
 
 def user_is_allowed(user, operation, obj):
-    key = table_key(obj.__class__)
+    key = table_key(obj if isinstance(obj, type) else obj.__class__)
 
     # gather credentials to check
     credentials = []
@@ -196,11 +196,6 @@ class Authorizer(object):
 
     .. code-block:: python
 
-        @app.route('/profile', method=['GET'])
-        @authorize.self(User.current)
-        def get_profile():
-            return
-
         @app.route('/users/<id(User):user>', method=['GET'])
         @authorize.read
         def get_user(user):
@@ -208,7 +203,7 @@ class Authorizer(object):
 
         @app.route('/users/<id(User):user>', method=['PUT'])
         @authorize.update
-        @authorize.role('user-updators')
+        @authorize.has_role('user-updators')
         def update_user(user):
             return
 
@@ -222,18 +217,18 @@ class Authorizer(object):
 
     """
 
-    def __init__(self, permission=None, has_role=None, in_group=None, model=None):
+    def __init__(self, permission=None, has_role=None, in_group=None, create=None):
         def _(arg):
             if arg is None:
                 arg = []
             if not isinstance(arg, (list, tuple)):
                 arg = [arg]
-            return arg
+            return list(arg)
 
         self.permission = _(permission)
         self.has_role = _(has_role)
         self.in_group = _(in_group)
-        self.model = _(model)
+        self.create = _(create)
         return
 
     def __call__(self, *cargs, **ckwargs):
@@ -254,7 +249,7 @@ class Authorizer(object):
                 permission=original.permission + self.permission,
                 has_role=original.has_role + self.has_role,
                 in_group=original.in_group + self.in_group,
-                model=original.model + self.model
+                create=original.create + self.create
             )
             AUTHORIZE_CACHE[func.__name__] = updated
             del original
@@ -292,15 +287,26 @@ class Authorizer(object):
         if len(self.has_role):
             if user_has_role(user, self.has_role):
                 return True
+            elif not len(self.permission) and not len(self.create):
+                return False
 
         # authorize if user has relevant group
         if len(self.in_group):
             if user_in_group(user, self.in_group):
                 return True
+            elif not len(self.permission) and not len(self.create):
+                return False
+
+        # authorize create privileges based on access
+        if len(self.create):
+            for model in self.create:
+                if user_is_restricted(user, ['create'], model) or \
+                   not user_is_allowed(user, ['create'], model):
+                    return False
 
         # return if no additional permission check needed
         if len(self.permission) == 0:
-            return False
+            return True
 
         # check permissions on individual instances - all objects
         # must have authorization to proceed.
