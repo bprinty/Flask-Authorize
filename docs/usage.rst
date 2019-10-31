@@ -552,40 +552,48 @@ A list of configuration keys currently understood by the extension:
 
 .. tabularcolumns:: |p{6.5cm}|p{10cm}|
 
-================================== =========================================
-``AUTHORIZE_DEFAULT_PERMISSIONS``  Either a number that can be used as a
-                                   permissions scheme (i.e. 764), or a dictionary
-                                   like the following:
+===================================== =========================================
+``AUTHORIZE_DEFAULT_PERMISSIONS``     Either a number that can be used as a
+                                      permissions scheme (i.e. 764), or a dictionary
+                                      like the following:
 
-                                   .. code-block:: python
+                                      .. code-block:: python
 
-                                        dict(
-                                            user=['read', 'update', 'delete'],
-                                            group=['read', 'update'],
-                                            other=['read']
+                                           dict(
+                                               user=['read', 'update', 'delete'],
+                                               group=['read', 'update'],
+                                               other=['read']
+                                           )
 
-                                        )
+``AUTHORIZE_DEFAULT_ALLOWANCES``      Default allowances for any model instantiated
+                                      with a ``AllowancesMixin``.
 
-``AUTHORIZE_DEFAULT_ALLOWANCES``   Default allowances for any model instantiated
-                                   with a ``AllowancesMixin``.
+``AUTHORIZE_DEFAULT_RESTRICTIONS``    Default restrictions for any model instantiated
+                                      with a ``RestrictionsMixin``.
 
-``AUTHORIZE_DEFAULT_RESTRICTIONS`` Default restrictions for any model instantiated
-                                   with a ``RestrictionsMixin``.
+``AUTHORIZE_MODEL_PARSER``            How to determine key names for authorization or
+                                      restriction data structures. By default, sqlalchemy
+                                      table names will be used. The schemes for parsing
+                                      keys are as follows:
 
-``AUTHORIZE_MODEL_PARSER``         How to determine key names for authorization or
-                                   restriction data structures. By default, sqlalchemy
-                                   table names will be used. The schemes for parsing
-                                   keys are as follows:
+                                        * table - Determine keys from sqlalchemy
+                                          table names
+                                        * class - Determine keys from sqlalchemy
+                                          class names
+                                        * lower - Determine keys from translating
+                                          sqlalchemy class names to lower case.
+                                        * snake - Determine keys from translating
+                                          sqlalchemy class names to snake_case.
 
-                                     * table - Determine keys from sqlalchemy
-                                       table names
-                                     * class - Determine keys from sqlalchemy
-                                       class names
-                                     * lower - Determine keys from translating
-                                       sqlalchemy class names to lower case.
-                                     * snake - Determine keys from translating
-                                       sqlalchemy class names to snake_case.
-================================== =========================================
+``AUTHORIZE_IGNORE_PROPERTY``         Model property that can be set to automatically
+                                      skip all allowances/restrictions checks. This is
+                                      useful for speeding up the authorization checks, if
+                                      you don't need allowances/restrictions checks on
+                                      specific models.
+
+``AUTHORIZE_ALLOW_ANONYMOUS_ACTIONS`` Whether or not to allow actions if the function
+                                      for returning the current user returns None
+===================================== =========================================
 
 
 Other Customizations
@@ -598,10 +606,11 @@ what can be customized:
 * ``current_user`` - The current user to authorize actions for. By default,
                      this uses the ``current_user`` object from
                      `Flask-Login <https://flask-login.readthedocs.io/en/latest/>`_.
-* ``exc`` - An exception class to raise when the authorize plugin object is
-            used as a decorator and the current user does not have authorization
-            to perform an action. By default, this uses the ``Unauthorized``
-            exception from ``werkzeug.exceptions``.
+* ``exception`` - An exception class to raise when the authorize plugin object is
+                  used as a decorator and the current user does not have authorization
+                  to perform an action. By default, this uses the ``Unauthorized``
+                  exception from ``werkzeug.exceptions``.
+
 
 The code below details how you can override all of these configuration options:
 
@@ -621,11 +630,56 @@ The code below details how you can override all of these configuration options:
     app = Flask(__name__)
     authorize = Authorize(
         current_user=get_current_user
-        exc=MyUnauthorizedException
+        exception=MyUnauthorizedException
     )
 
 
 For even more in-depth information on the module and the tools it provides, see the `API <./api.html>`_ section of the documentation.
+
+
+Usage with Factory Boy
+----------------------
+
+By default, common factory-pattern utilities used in testing frameworks will set unreferenced properties to ``None`` instead of using model defaults for a property. To avoid this and set permissions explicitly during testing, use the ``factory.LazyFunction`` decorator with the ``default_permissions`` function from this package for any ``permissions`` properties on content models. See the example below for additional context:
+
+.. code-block:: python
+    
+    import factory
+
+    from flask_authorize import default_permissions
+
+
+    # defining user and article factories
+    class UserFactory(factory.alchemy.SQLAlchemyModelFactory):
+
+        id = factory.Sequence(lambda x: x + 1)
+        name = factory.Faker('name')
+        email = factory.Faker('email')
+        password = factory.Faker('password')
+
+        class Meta:
+            model = User
+            sqlalchemy_session = db.session
+
+
+    class ArticleFactory(factory.alchemy.SQLAlchemyModelFactory):
+
+        id = factory.Sequence(lambda x: x + 1)
+        name = factory.Faker('name')
+        body = factory.Faker('paragraph')
+        tags = factory.Faker('words')
+        owner = factory.LazyFunction(UserFactory)
+        permissions = factory.LazyFunction(default_permissions)
+
+        class Meta:
+            model = Article
+            sqlalchemy_session = db.session
+
+
+    # using factories to create models
+    user = UserFactory.create()
+    ArticleFactory.create(owner=user)
+
 
 
 Code Structure and Clarity
