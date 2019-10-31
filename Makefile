@@ -7,8 +7,9 @@
 # config
 # ------
 PYTHON     = python3
-PROJECT    = `$(PYTHON) -c 'print(__import__("lib").__pkg__)'`
-VERSION    = `$(PYTHON) -c 'print(__import__("lib").__version__)'`
+PAKCAGE    = flask_authorize
+PROJECT    = `$(PYTHON) -c 'print(__import__("flask_authorize").__pkg__)'`
+VERSION    = `$(PYTHON) -c 'print(__import__("flask_authorize").__version__)'`
 
 
 # targets
@@ -27,7 +28,7 @@ info: ## list info about package
 
 
 clean: ## remove build and test artifacts
-	rm -fr build dist .eggs .pytest_cache
+	rm -fr build dist .eggs .pytest_cache docs/_build .coverage
 	find . -name '*.egg-info' -exec rm -fr {} +
 	find . -name '*.egg' -exec rm -f {} +
 	find . -name '*.py[co]' -exec rm -f {} +
@@ -61,8 +62,7 @@ build: clean ## build package
 release: build tag ## release package by pushing tags to github/pypi
 	VER=$(VERSION) && git push origin :$$VER || echo 'Remote tag available'
 	VER=$(VERSION) && git push origin $$VER
-	$(PYTHON) setup.py sdist upload -r pypitest
-	$(PYTHON) setup.py sdist upload -r pypi
+	twine upload --skip-existing dist/*
 
 
 install: clean ## install package using setuptools
