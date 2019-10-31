@@ -26,6 +26,7 @@ class Config(object):
     SQLALCHEMY_ECHO = False
     PROPAGATE_EXCEPTIONS = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:///{}/app.db'.format(SANDBOX)
+    AUTHORIZE_ALLOW_ANONYMOUS_ACTIONS = True
 
 
 app = Flask(__name__)
@@ -138,9 +139,20 @@ class ArticleFactory(factory.alchemy.SQLAlchemyModelFactory):
 # fixtures
 # --------
 @pytest.fixture(scope='session')
+def anonymous(client):
+    yield UserFactory.create(
+        name='anonymous'
+    )
+
+
+@pytest.fixture(scope='session')
 def admin(client):
+    group = GroupFactory.create(name='admins')
+    role = RoleFactory.create(name='admins')
     yield UserFactory.create(
         name='admin',
+        groups=[group],
+        roles=[role]
     )
 
 

@@ -7,8 +7,10 @@
 
 # imports
 # -------
-from flask import g
 import pytest
+from flask import g
+from werkzeug.exceptions import Unauthorized
+
 from .fixtures import authorize, db, Article, ArticleFactory
 
 
@@ -16,13 +18,13 @@ from .fixtures import authorize, db, Article, ArticleFactory
 # -----------
 @authorize.read
 @authorize.create(Article)
-@authorize.in_group('test')
-def in_group_or_read_or_create(article):
+@authorize.in_group('admins')
+def in_group_or_read_and_create(article):
     pass
 
 
 @authorize.read
-@authorize.has_role('test')
+@authorize.has_role('admins')
 def has_role_or_read(article):
     pass
 
@@ -53,20 +55,53 @@ class TestDefaults(object):
 
 class TestIntegration(object):
 
-    def test_in_group_or_read_or_create(self, client, reader, editor):
+    def test_in_group_or_read_and_create(self, client, reader, editor, admin, anonymous):
+        g.user = None
         article = ArticleFactory.create(
-            name='Other Delete Open Article',
-            owner=editor,
+            name='Complex Article 1',
+            owner=reader,
             group=editor.groups[0]
-        ).set_permissions('001')
+        ).set_permissions('770')
 
+        # no errors
         g.user = reader
+        in_group_or_read_and_create(article)
+
+        g.user = editor
+        in_group_or_read_and_create(article)
+
+        g.user = admin
+        in_group_or_read_and_create(article)
+
+        # errors
+        g.user = anonymous
+        with pytest.raises(Unauthorized):
+            in_group_or_read_and_create(article)
         return
 
-    def test_has_role_or_read(self, client):
+    def test_has_role_or_read(self, client, reader, editor, admin, anonymous):
+        g.user = None
+        article = ArticleFactory.create(
+            name='Complex Article 2',
+            owner=reader,
+            group=editor.groups[0]
+        ).set_permissions('700')
+
+        # no errors
+        g.user = reader
+        has_role_or_read(article)
+
+        g.user = admin
+        has_role_or_read(article)
+
+        # errors
+        g.user = anonymous
+        with pytest.raises(Unauthorized):
+            has_role_or_read(article)
         return
 
     def test_multiple_permissions(self, client, reader, editor):
+        g.user = reader
         allow = ArticleFactory.create(
             name='Multiple Permissions Open Article',
             owner=reader,

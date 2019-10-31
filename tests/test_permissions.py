@@ -16,62 +16,76 @@ from .fixtures import authorize, ArticleFactory
 class TestOtherPermissions(object):
 
     def test_other_delete(self, client, reader, editor):
-        g.user = reader
 
         # other open read permissions
+        g.user = None
         article = ArticleFactory.create(
             name='Other Delete Open Article',
             owner=editor,
             group=editor.groups[0]
         ).set_permissions('001')
+
+        g.user = reader
         assert authorize.delete(article)
 
         # other closed read permissions
+        g.user = None
         article = ArticleFactory.create(
             name='Other Delete Closed Article',
             owner=editor,
             group=editor.groups[0]
         ).set_permissions('770')
+
+        g.user = reader
         assert not authorize.delete(article)
         return
 
     def test_other_read(self, client, reader, editor):
-        g.user = reader
 
         # other open read permissions
+        g.user = None
         article = ArticleFactory.create(
             name='Other Read Open Article',
             owner=editor,
             group=editor.groups[0]
         ).set_permissions('002')
+
+        g.user = reader
         assert authorize.read(article)
 
         # other closed read permissions
+        g.user = None
         article = ArticleFactory.create(
             name='Other Read Closed Article',
             owner=editor,
             group=editor.groups[0]
         ).set_permissions('660')
+
+        g.user = reader
         assert not authorize.read(article)
         return
 
     def test_other_update(self, reader, editor):
-        g.user = reader
 
         # other open update permissions
+        g.user = None
         article = ArticleFactory.create(
             name='Other Write Open Article',
             owner=editor,
             group=editor.groups[0]
         ).set_permissions('004')
+
+        g.user = reader
         assert authorize.update(article)
 
         # other closed update permissions
+        g.user = None
         article = ArticleFactory.create(
             name='Other Write Closed Article',
             owner=editor,
             group=editor.groups[0]
         ).set_permissions('662')
+        g.user = reader
         assert not authorize.update(article)
         return
 

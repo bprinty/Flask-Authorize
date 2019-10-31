@@ -61,6 +61,8 @@ class Authorize(object):
         app.config.setdefault('AUTHORIZE_DEFAULT_ALLOWANCES', ['create', 'delete', 'read', 'update'])
         app.config.setdefault('AUTHORIZE_MODEL_PARSER', 'table')
         app.config.setdefault('AUTHORIZE_IGNORE_PROPERTY', '__check_access__')
+        app.config.setdefault('AUTHORIZE_ALLOW_ANONYMOUS_ACTIONS', False)
+        app.extensions['authorize'] = self
 
         self.app = app
 
@@ -253,19 +255,21 @@ class Authorizer(object):
             )
             AUTHORIZE_CACHE[func.__name__] = updated
             del original
-
-        auth = AUTHORIZE_CACHE[func.__name__]
+            return func
 
         @wraps(func)
         def inner(*args, **kwargs):
+
             # gather all items to check authorization for
             check = list(args) + list(kwargs.values())
 
             # check if authorized
+            auth = AUTHORIZE_CACHE[func.__name__]
             if not auth.allowed(*check):
                 raise Unauthorized
 
             return func(*args, **kwargs)
+
         return inner
 
     def allowed(self, *args, **kwargs):
@@ -281,7 +285,7 @@ class Authorizer(object):
 
         # don't allow anything for anonymous users
         if user is None:
-            return False
+            return current_app.config['AUTHORIZE_ALLOW_ANONYMOUS_ACTIONS']
 
         # authorize if user has relevant role
         if len(self.has_role):

@@ -11,6 +11,7 @@ import six
 import re
 import json
 from flask import current_app
+from werkzeug.exceptions import Unauthorized
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy.types import Integer, String
 from sqlalchemy.orm import relationship, backref
@@ -214,6 +215,11 @@ class BasePermissionsMixin(object):
         """
         Set permissions explicitly for ACL-enforced content.
         """
+        if 'authorize' in current_app.extensions:
+            authorize = current_app.extensions['authorize']
+            if not authorize.update(self):
+                raise Unauthorized
+
         # handle numeric permission scheme
         if len(args):
             perms = parse_permission_set(args[0])
