@@ -11,6 +11,7 @@ import os
 import pytest
 import logging
 
+from flask import g
 from .fixtures import db, app
 
 
@@ -60,6 +61,7 @@ def application(request):
 
     # create default user
     with app.app_context():
+        g.user = None
         db.drop_all()
         db.create_all()
         yield app
