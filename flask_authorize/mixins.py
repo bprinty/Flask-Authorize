@@ -16,7 +16,7 @@ from sqlalchemy import Column, ForeignKey
 from sqlalchemy.types import Integer, String
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy import TypeDecorator
+from sqlalchemy import TypeDecorator, inspect
 
 
 # types
@@ -90,7 +90,8 @@ def table_key(cls):
 
     # table name
     elif current_app.config['AUTHORIZE_MODEL_PARSER'] == 'table':
-        return cls.__table__.name
+        mapper = inspect(cls)
+        return mapper.tables[0].name
 
 
 def default_permissions(cls=None):
@@ -243,9 +244,7 @@ class OwnerMixin(object):
 
     @declared_attr
     def owner(cls):
-        return relationship('User', backref=backref(
-            'articles', cascade="all, delete-orphan",
-        ))
+        return relationship('User')
 
 
 class OwnerPermissionsMixin(BasePermissionsMixin, OwnerMixin):
@@ -265,9 +264,7 @@ class GroupMixin(object):
 
     @declared_attr
     def group(cls):
-        return relationship('Group', backref=backref(
-            'articles', cascade="all, delete-orphan",
-        ))
+        return relationship('Group')
 
 
 class GroupPermissionsMixin(BasePermissionsMixin, GroupMixin):
