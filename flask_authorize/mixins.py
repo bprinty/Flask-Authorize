@@ -212,7 +212,7 @@ class BasePermissionsMixin(object):
     def permissions(cls):
         return Column(JSON, default=default_permissions)
 
-    def set_permissions(self, *args, **permissions):
+    def set_permissions(self, *args, **kwargs):
         """
         Set permissions explicitly for ACL-enforced content.
         """
@@ -224,10 +224,12 @@ class BasePermissionsMixin(object):
         # handle numeric permission scheme
         if len(args):
             perms = parse_permission_set(args[0])
-            permissions.update(perms)
+            kwargs.update(perms)
 
         # set internal permissions object
-        self.permissions.update(permissions)
+        permissions = self.permissions.copy()
+        permissions.update(kwargs)
+        self.permissions = permissions
         return self
 
 
@@ -337,7 +339,9 @@ class RestrictionsMixin(object):
             kwargs[key] = permission_list(kwargs[key])
 
         # set internal restrictions object
-        self.restrictions.update(kwargs)
+        restrictions = self.restrictions.copy()
+        restrictions.update(kwargs)
+        self.restrictions = restrictions
         return self
 
 
@@ -359,5 +363,7 @@ class AllowancesMixin(object):
             kwargs[key] = permission_list(kwargs[key])
 
         # set internal restrictions object
-        self.allowances.update(kwargs)
+        allowances = self.allowances.copy()
+        allowances.update(kwargs)
+        self.allowances = allowances
         return self
