@@ -536,6 +536,53 @@ Role/Group Authorization
     - ``allowances``: JSON data encoding content permissions associated with the group.
 
 
+Jinja Support
+-------------
+
+In addition to using the ``authorize`` plugin for controlling rest-based data access, you can also use it in your Jinja templates. For example, if your request handler injects a set of ``Article`` instances into the template like so:
+
+.. code-block:: python
+
+    @app.route('/app/feed')
+    def feed_view(self):
+        articles = Article.query.limit(50).offset(0).all()
+        return render_template('feed.html', articles=articles)
+
+
+The ``feed.html`` template can contain the following Jinja expressions for conditionally rendering authorized content:
+
+.. code-block:: html
+
+    <!-- button for creating new article -->
+    {% if authorize.create('articles') %}
+        <button>Create Article</button>
+    {% endif %}
+
+    <!-- display article feed -->
+    {% for article in articles %}
+
+        <!-- show article if user has read access -->
+        {% if authorize.read(article) %}
+            <h1>{{ article.name }}</h1>
+
+            <!-- add edit button -->
+            {% if authorize.update(article) %}
+                <button>Update Article</button>
+            {% endif %}
+
+            <!-- add delete button for administrators -->
+            {% if authorize.in_group('admins') %}
+                <button>Delete Article</button>
+            {% endif %}
+
+        {% endif %}
+    {% endfor %}
+
+
+The ``authorize`` decorator is automatically injected into the Jinja context, so developers can use any method available on the object.
+
+
+
 Configuration
 -------------
 
@@ -564,6 +611,9 @@ A list of configuration keys currently understood by the extension:
                                                group=['read', 'update'],
                                                other=['read']
                                            )
+
+``AUTHORIZE_DISABLE_JINJA``           Don't add the ``authorize`` plugin to Jinja context.
+                                      This disables jinja support.
 
 ``AUTHORIZE_DEFAULT_ALLOWANCES``      Default allowances for any model instantiated
                                       with a ``AllowancesMixin``.
