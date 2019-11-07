@@ -1,0 +1,24 @@
+<!-- button for creating new article -->
+{% if authorize.create('articles') %}
+    <button>Create Article</button>
+{% endif %}
+
+<!-- display article feed -->
+{% for article in articles %}
+
+    <!-- show article if user has read access -->
+    {% if authorize.read(article) %}
+        <h1>{{ article.name }}</h1>
+
+        <!-- add edit button -->
+        {% if authorize.update(article) %}
+            <button>Update Article</button>
+        {% endif %}
+
+        <!-- add delete button for administrators -->
+        {% if authorize.in_group('admins') %}
+            <button>Delete Article</button>
+        {% endif %}
+
+    {% endif %}
+{% endfor %}
