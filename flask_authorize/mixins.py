@@ -42,6 +42,34 @@ class JSON(TypeDecorator):
             return None
 
 
+class PipedList(TypeDecorator):
+    """
+    SQLite, MySQL, and PostgreSQL compatible type
+    for column that renders as list when referenced
+    in python and a string where list entries are
+    separated by pipes '|' when referenced in the
+    database.
+    """
+    impl = String
+
+    @property
+    def python_type(self):
+        return object
+
+    def process_bind_param(self, value, dialect):
+        if not value:
+            return None
+        return '|'.join(value)
+
+    def process_result_value(self, value, dialect):
+        try:
+            if not value:
+                return []
+            return value.split('|')
+        except (ValueError, TypeError):
+            return None
+
+
 # helpers
 # -------
 MODELS = dict()
@@ -92,6 +120,16 @@ def table_key(cls):
     elif current_app.config['AUTHORIZE_MODEL_PARSER'] == 'table':
         mapper = inspect(cls)
         return mapper.tables[0].name
+
+
+def default_permissions_factory(name):
+    """
+    Factory for returning default permissions based on name.
+    """
+    def _(cls=None):
+        perms = default_permissions(cls)
+        return perms.get(name, [])
+    return _
 
 
 def default_permissions(cls=None):
@@ -207,10 +245,28 @@ class BasePermissionsMixin(object):
     """
     __permissions__ = None
 
-    # properties
     @declared_attr
-    def permissions(cls):
-        return Column(JSON, default=default_permissions)
+    def other_permissions(cls):
+        return Column(PipedList, default=default_permissions_factory('other'))
+
+    @property
+    def permissions(self):
+        result = {}
+        for name in ['owner', 'group', 'other']:
+            prop = name + '_permissions'
+            if hasattr(self, prop):
+                result[name] = getattr(self, prop)
+        return result
+
+    @permissions.setter
+    def permissions(self, value):
+        for name in ['owner', 'group', 'other']:
+            if name not in value:
+                continue
+            prop = name + '_permissions'
+            if hasattr(self, prop):
+                setattr(self, prop, value[name])
+        return
 
     def set_permissions(self, *args, **kwargs):
         """
@@ -237,8 +293,6 @@ class OwnerMixin(object):
     """
     Mixin providing owner-related database properties
     for object, in the context of enforcing permissions.
-
-    .. note:: NEEDS MORE DOCUMENTATION AND EXAMPLES
     """
     @declared_attr
     def owner_id(cls):
@@ -247,6 +301,10 @@ class OwnerMixin(object):
     @declared_attr
     def owner(cls):
         return relationship('User')
+
+    @declared_attr
+    def owner_permissions(cls):
+        return Column(PipedList, default=default_permissions_factory('owner'))
 
 
 class OwnerPermissionsMixin(BasePermissionsMixin, OwnerMixin):
@@ -257,8 +315,6 @@ class GroupMixin(object):
     """
     Mixin providing group-related database properties
     for object, in the context of enforcing permissions.
-
-    .. note:: NEEDS MORE DOCUMENTATION AND EXAMPLES
     """
     @declared_attr
     def group_id(cls):
@@ -267,6 +323,10 @@ class GroupMixin(object):
     @declared_attr
     def group(cls):
         return relationship('Group')
+
+    @declared_attr
+    def group_permissions(cls):
+        return Column(PipedList, default=default_permissions_factory('group'))
 
 
 class GroupPermissionsMixin(BasePermissionsMixin, GroupMixin):
@@ -297,8 +357,6 @@ class PermissionsMixin(BasePermissionsMixin, OwnerMixin, GroupMixin):
     """
     Mixin providing owner and group-related database properties
     for object, in the context of enforcing permissions.
-
-    .. note:: NEEDS MORE DOCUMENTATION AND EXAMPLES
     """
     pass
 
@@ -324,8 +382,6 @@ class PermissionsMixin(BasePermissionsMixin, OwnerMixin, GroupMixin):
 class RestrictionsMixin(object):
     """
     Mixin providing group or role based access control.
-
-    .. note:: NEEDS MORE DOCUMENTATION AND EXAMPLES
     """
     __restrictions__ = dict()
 
@@ -348,8 +404,6 @@ class RestrictionsMixin(object):
 class AllowancesMixin(object):
     """
     Mixin providing group or role based access control.
-
-    .. note:: NEEDS MORE DOCUMENTATION AND EXAMPLES
     """
     __allowances__ = dict()
 
