@@ -75,10 +75,17 @@ class Authorize(object):
         app.config.setdefault('AUTHORIZE_MODEL_PARSER', 'table')
         app.config.setdefault('AUTHORIZE_IGNORE_PROPERTY', '__check_access__')
         app.config.setdefault('AUTHORIZE_ALLOW_ANONYMOUS_ACTIONS', False)
+        app.config.setdefault('AUTHORIZE_DISABLE_JINJA', False)
 
         # add to extensions dict for access
         app.extensions['authorize'] = self
         self.app = app
+
+        # add authorize decorator to jinja context
+        if not app.config['AUTHORIZE_DISABLE_JINJA']:
+            @app.context_processor
+            def inject_authorize():
+                return dict(authorize=self)
         return
 
     def __getattr__(self, key):
@@ -144,7 +151,12 @@ def user_in_group(user, groups):
 
 
 def user_is_restricted(user, operation, obj):
-    key = table_key(obj if isinstance(obj, type) else obj.__class__)
+    if isinstance(obj, six.string_types):
+        key = obj
+    elif isinstance(obj, type):
+        key = table_key(obj)
+    else:
+        key = table_key(obj.__class__)
 
     # gather credentials to check
     credentials = []
@@ -165,7 +177,12 @@ def user_is_restricted(user, operation, obj):
 
 
 def user_is_allowed(user, operation, obj):
-    key = table_key(obj if isinstance(obj, type) else obj.__class__)
+    if isinstance(obj, six.string_types):
+        key = obj
+    elif isinstance(obj, type):
+        key = table_key(obj)
+    else:
+        key = table_key(obj.__class__)
 
     # gather credentials to check
     credentials = []
@@ -240,6 +257,12 @@ class Authorizer(object):
         self.in_group = _(in_group)
         self.create = _(create)
         return
+
+    def __bool__(self):
+        """
+        Proxy for doing conditional on functional methods (i.e. create)
+        """
+        return self.allowed()
 
     def __call__(self, *cargs, **ckwargs):
 

@@ -9,8 +9,7 @@
 # -------
 import pytest
 import factory
-from flask import Flask, request, jsonify, g
-from werkzeug.exceptions import Unauthorized, NotFound
+from flask import Flask, render_template, g
 from flask_sqlalchemy import SQLAlchemy
 from flask_authorize import Authorize, PermissionsMixin, AllowancesMixin, RestrictionsMixin
 from flask_authorize.mixins import default_allowances, default_restrictions, default_permissions
@@ -86,6 +85,14 @@ class Article(db.Model, PermissionsMixin):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), index=True, nullable=False)
+
+
+# endpoints
+# ---------
+@app.route('/feed', methods=['GET'])
+def feed():
+    articles = Article.query.filter_by(name='Jinja Article').all()
+    return render_template('feed.html', articles=articles)
 
 
 # factories
