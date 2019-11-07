@@ -26,11 +26,11 @@ class TestAccessControl(object):
 
         g.user = allowed
         assert authorize.read(article)
-        assert authorize.create(Article)(article)
+        assert authorize.create(Article)
 
         g.user = unallowed
         assert not authorize.read(article)
-        assert not authorize.create(Article)(article)
+        assert not authorize.create(Article)
         return
 
     def test_restrictions(self, client, reader, restricted, unrestricted):
@@ -43,46 +43,32 @@ class TestAccessControl(object):
 
         g.user = unrestricted
         assert authorize.read(article)
-        assert authorize.create(Article)(article)
+        assert authorize.create(Article)
 
         g.user = restricted
         assert not authorize.read(article)
-        assert not authorize.create(Article)(article)
+        assert not authorize.create(Article)
         return
 
 
 class TestCredentials(object):
 
     def test_in_group(self, client, admin, reader, editor):
-        g.user = None
-        article = ArticleFactory.create(
-            name='In-Group Closed Article',
-            owner=editor,
-            group=editor.groups[0]
-        ).set_permissions('000')
-
         g.user = reader
-        assert authorize.in_group('readers')(article)
-        assert not authorize.in_group('editors')(article)
+        assert authorize.in_group('readers')
+        assert not authorize.in_group('editors')
 
         g.user = editor
-        assert authorize.in_group('editors')(article)
-        assert not authorize.in_group('readers')(article)
+        assert authorize.in_group('editors')
+        assert not authorize.in_group('readers')
         return
 
     def test_has_role(self, client, reader, editor):
-        g.user = None
-        article = ArticleFactory.create(
-            name='Has-Role Closed Article',
-            owner=editor,
-            group=editor.groups[0]
-        ).set_permissions('000')
-
         g.user = reader
-        assert authorize.has_role('readers')(article)
-        assert not authorize.has_role('editors')(article)
+        assert authorize.has_role('readers')
+        assert not authorize.has_role('editors')
 
         g.user = editor
-        assert authorize.in_group('editors')(article)
-        assert not authorize.in_group('readers')(article)
+        assert authorize.in_group('editors')
+        assert not authorize.in_group('readers')
         return
