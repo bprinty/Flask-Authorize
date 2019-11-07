@@ -253,6 +253,35 @@ Using the extension as a decorator goes a long way in removing boilerplate assoc
 
 This function will ensure that the current user has read access to both articles and also create permissions on the **Article** model itself. If the authorization criteria aren't satisfied, an ``Unauthorized`` error will be thrown.
 
+Finally, the ``authorize`` operator is also available in Jinja templates:
+
+.. code-block:: html
+
+    <!-- button for creating new article -->
+    {% if authorize.create('articles') %}
+        <button>Create Article</button>
+    {% endif %}
+
+    <!-- display article feed -->
+    {% for article in articles %}
+
+        <!-- show article if user has read access -->
+        {% if authorize.read(article) %}
+            <h1>{{ article.name }}</h1>
+
+            <!-- add edit button for users who can update-->
+            {% if authorize.update(article) %}
+                <button>Update Article</button>
+            {% endif %}
+
+            <!-- add delete button for administrators -->
+            {% if authorize.in_group('admins') %}
+                <button>Delete Article</button>
+            {% endif %}
+
+        {% endif %}
+    {% endfor %}
+
 
 Documentation
 =============
