@@ -73,8 +73,7 @@ Defining database models:
 
 .. code-block:: python
 
-    from flask_authorize import GroupRestrictionsMixin, RoleRestrictionsMixin
-    from flask_authorize import PermissionsMixin
+    from flask_authorize import RestrictionsMixin, AllowancesMixin, PermissionsMixin
 
 
     # mapping tables
@@ -105,12 +104,12 @@ Defining database models:
         groups = db.relationship('Group', secondary=UserGroup)
 
 
-    class Group(db.Model, GroupRestrictionsMixin):
+    class Group(db.Model, RestrictionsMixin):
         id = db.Column(db.Integer, primary_key=True)
         name = db.Column(db.String(255), nullable=False, unique=True)
 
 
-    class Role(db.Model, RoleRestrictionsMixin):
+    class Role(db.Model, AllowancesMixin):
         id = db.Column(db.Integer, primary_key=True)
         name = db.Column(db.String(255), nullable=False, unique=True)
 
