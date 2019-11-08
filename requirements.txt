@@ -1,2 +1,3 @@
+six
 Flask
 Flask-SQLAlchemy
