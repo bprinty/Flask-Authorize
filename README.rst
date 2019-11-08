@@ -73,7 +73,8 @@ Defining database models:
 
 .. code-block:: python
 
-    from flask_authorize import RestrictionsMixin, AllowancesMixin, PermissionsMixin
+    from flask_authorize import RestrictionsMixin, AllowancesMixin
+    from flask_authorize import PermissionsMixin
 
 
     # mapping tables
