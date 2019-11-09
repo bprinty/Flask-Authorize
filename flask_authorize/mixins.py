@@ -14,9 +14,10 @@ from flask import current_app
 from werkzeug.exceptions import Unauthorized
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy.types import Integer, String
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import operators
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy import TypeDecorator, inspect
+from sqlalchemy import TypeDecorator, inspect, and_, or_
 
 
 # types
@@ -55,6 +56,14 @@ class PipedList(TypeDecorator):
     @property
     def python_type(self):
         return object
+
+    def coerce_compared_value(self, op, value):
+        if op in (operators.like_op,
+                  operators.notlike_op,
+                  operators.contains_op):
+            return String()
+        else:
+            return self
 
     def process_bind_param(self, value, dialect):
         if not value:
@@ -249,8 +258,57 @@ class BasePermissionsMixin(object):
     def other_permissions(cls):
         return Column(PipedList, default=default_permissions_factory('other'))
 
+    @classmethod
+    def authorized(cls, check):
+        """
+        Query operator for permissions mixins. This operator
+        can be used in SQLAlchemy query statements, and will
+        automatically decorate queries with appropriate owner/group
+        and permissionc checks.
+
+        Arguments:
+            check (str): Permission to authorize (i.e. read, update)
+
+        Examples:
+
+            Query all articles where the current user is read-authorized:
+
+            .. code-block:: python
+
+                Article.query.filter(Article.authorized('read')).all()
+
+
+            Query by multiple parameters, including authorization:
+
+            .. code-block:: python
+
+                Article.query.filter(or_(
+                    Article.name.contains('open article'),
+                    Article.authorized('read')
+                ))
+        """
+        from .plugin import CURRENT_USER
+        current_user = CURRENT_USER()
+        clauses = [
+            cls.other_permissions.contains(check),
+        ]
+        if hasattr(cls, 'owner_id'):
+            clauses.append(and_(
+                current_user.id == cls.owner_id,
+                cls.owner_permissions.contains(check)
+            ))
+        if hasattr(cls, 'group_id') and hasattr(current_user, 'groups'):
+            clauses.append(and_(
+                cls.group_id.in_([x.id for x in current_user.groups]),
+                cls.group_permissions.contains(check)
+            ))
+        return or_(*clauses)
+
     @property
     def permissions(self):
+        """
+        Proxy for interacting with permissions dictionary.
+        """
         result = {}
         for name in ['owner', 'group', 'other']:
             prop = name + '_permissions'
@@ -260,6 +318,9 @@ class BasePermissionsMixin(object):
 
     @permissions.setter
     def permissions(self, value):
+        """
+        Setter for permissions dictionary proxy.
+        """
         for name in ['owner', 'group', 'other']:
             if name not in value:
                 continue
