@@ -536,6 +536,45 @@ Role/Group Authorization
     - ``allowances``: JSON data encoding content permissions associated with the group.
 
 
+Bulk Query Support
+------------------
+
+In addition to operators for checking permission schemes on individual article instances, this extension also provides a mechanism (``Model.authorized``) for doing permission checks on bulk queries. This is useful for queries where developers need to find all database items matching some criteria *and* authorization criteria. For example, if we need to query for all articles that the ``current_user`` has access to, we can use:
+
+.. code-block:: python
+
+    # query for all articles that the current user can read
+    articles = Article.query.filter(Article.authorized('read')).all()
+
+
+And if we need to perform a more complex query where we're filtering on multiple operators, we can use:
+
+.. code-block:: python
+
+    # query for all articles that the current user can
+    # update or that has 'open article' in the name
+    articles = Article.query.filter(or_(
+        Article.name.contains('open article'),
+        Article.authorized('update')
+    )).all()
+
+
+Finally, we can do complex permission type checking with conditional operators using the same ``Model.authorized`` query filter:
+
+.. code-block:: python
+
+    # query for all articles that the current user can
+    # update AND read or that has 'open article' in the name
+    articles = Article.query.filter(or_(
+        Article.name.contains('open article'),
+        and_(
+            Article.authorized('read'),
+            Article.authorized('update')
+        )
+    )).all()
+
+
+
 Jinja Support
 -------------
 

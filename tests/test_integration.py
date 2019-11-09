@@ -10,8 +10,9 @@
 import pytest
 from flask import g
 from werkzeug.exceptions import Unauthorized
+from sqlalchemy import and_, or_
 
-from .fixtures import authorize, db, Article, ArticleFactory
+from .fixtures import authorize, Article, ArticleFactory
 
 
 # authorizers
@@ -125,4 +126,46 @@ class TestIntegration(object):
         assert authorize.update(allow)
         assert not authorize.update(deny)
         assert not authorize.update(allow, deny)
+        return
+
+
+class TestQueryFilters(object):
+
+    def test_query_filter_operations(self, reader, editor, anonymous):
+        g.user = None
+        article = ArticleFactory.create(
+            name='Query Filter Article',
+            owner=reader,
+            group=editor.groups[0]
+        ).set_permissions('770')
+
+        # simple and_ filter
+        g.user = reader
+        articles = Article.query.filter(and_(
+                Article.name == article.name,
+                Article.authorized('read')
+            )
+        ).all()
+        assert articles
+
+        # complex and_/or_ operator
+        g.user = editor
+        articles = Article.query.filter(and_(
+                Article.name == article.name,
+                or_(
+                    Article.authorized('read'),
+                    Article.authorized('update')
+                )
+            )
+        ).all()
+        assert articles
+
+        # and_ filter with negative query
+        g.user = anonymous
+        articles = Article.query.filter(and_(
+                Article.name == article.name,
+                Article.authorized('read')
+            )
+        ).all()
+        assert not articles
         return
