@@ -292,16 +292,17 @@ class BasePermissionsMixin(object):
         clauses = [
             cls.other_permissions.contains(check),
         ]
-        if hasattr(cls, 'owner_id'):
-            clauses.append(and_(
-                current_user.id == cls.owner_id,
-                cls.owner_permissions.contains(check)
-            ))
-        if hasattr(cls, 'group_id') and hasattr(current_user, 'groups'):
-            clauses.append(and_(
-                cls.group_id.in_([x.id for x in current_user.groups]),
-                cls.group_permissions.contains(check)
-            ))
+        if hasattr(current_user, 'id'):
+            if hasattr(cls, 'owner_id'):
+                clauses.append(and_(
+                    current_user.id == cls.owner_id,
+                    cls.owner_permissions.contains(check)
+                ))
+            if hasattr(cls, 'group_id') and hasattr(current_user, 'groups'):
+                clauses.append(and_(
+                    cls.group_id.in_([x.id for x in current_user.groups]),
+                    cls.group_permissions.contains(check)
+                ))
         return or_(*clauses)
 
     @property
