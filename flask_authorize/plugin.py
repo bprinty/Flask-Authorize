@@ -348,21 +348,22 @@ class Authorizer(object):
         operation = set(self.permission)
         for arg in args:
 
-            # only check permissions for items that have set permissions
             if not isinstance(arg.__class__, six.class_types):
                 continue
-            check = current_app.config['AUTHORIZE_IGNORE_PROPERTY']
-            if hasattr(arg, check) and not getattr(arg, check):
-                continue
-            if not hasattr(arg, 'permissions'):
-                continue
 
-            # # check role restrictions/allowances
+            # check role restrictions/allowances
             if user_is_restricted(user, operation, arg):
                 return False
 
             if not user_is_allowed(user, operation, arg):
                 return False
+
+            # only check permissions for items that have set permissions
+            check = current_app.config['AUTHORIZE_IGNORE_PROPERTY']
+            if hasattr(arg, check) and not getattr(arg, check):
+                continue
+            if not hasattr(arg, 'permissions'):
+                continue
 
             # check other permissions
             check = arg.permissions.get('other', [])
