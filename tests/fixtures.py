@@ -87,6 +87,13 @@ class Article(db.Model, PermissionsMixin):
     name = db.Column(db.String(255), index=True, nullable=False)
 
 
+class Item(db.Model):
+    __tablename__ = 'items'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), index=True, nullable=False)
+
+
 # endpoints
 # ---------
 @app.route('/feed', methods=['GET'])
@@ -139,6 +146,17 @@ class ArticleFactory(factory.alchemy.SQLAlchemyModelFactory):
 
     class Meta:
         model = Article
+        sqlalchemy_session = db.session
+        sqlalchemy_session_persistence = 'commit'
+
+
+class ItemFactory(factory.alchemy.SQLAlchemyModelFactory):
+
+    id = factory.Sequence(lambda x: x + 100)
+    name = factory.Faker('name')
+
+    class Meta:
+        model = Item
         sqlalchemy_session = db.session
         sqlalchemy_session_persistence = 'commit'
 
