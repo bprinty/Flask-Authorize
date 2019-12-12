@@ -66,7 +66,7 @@ In the documentation below, we need a use-case to illustrate the various functio
 
 Here are model definitions for the above scheme in the context of a Flask application:
 
-.. code-block:: python 
+.. code-block:: python
 
         from flask_authorize import RestrictionsMixin, AllowancesMixin
         from flask_authorize import PermissionsMixin
@@ -260,7 +260,7 @@ In addition to authorizing permissions on created content, we can also add anoth
         name = db.Column(db.String(255), nullable=False, unique=True)
 
 
-Once configured with this mixin, restrictions can be set up for users like so:
+Once configured with this mixin, restrictions can be set up for specific users like so:
 
 .. code-block:: python
 
@@ -317,6 +317,28 @@ Once this is all configured, you can enforce these restrictions like so:
         return article
 
 
+To configure default restrictions for models inheriting the ``RestrictionsMixin``, explicitly set the ``__restrictions__`` property on the model:
+
+.. code-block:: python
+
+  # restrict nothing by default (default)
+  class Role(db.Model, RestrictionMixin):
+      __restrictions__ = {}
+
+  # restrict everything by default (common fail-safe)
+  class Role(db.Model, RestrictionMixin):
+      __restrictions__ = '*'
+
+  # create specific restrictions for items in the `articles` table by default
+  class Role(db.Model, RestrictionMixin):
+      __restrictions__ = {
+        'articles': ['update', 'delete']
+      }
+
+
+.. note:: By default, no restrictions will be applied to any models in the application. To enable a fail-safe where all actions to all models are restricted by default, use ``__restrictions__ = '*'`` when configuring models with the ``RestrictionsMixin``.
+
+
 Even if your content permissions are configured to be wide open, user role/group restrictions will still be checked when determining access.
 
 .. note:: In cases where both Role/Group restrictions and content permissions are conflicting, the most stringent set of permissions will be used. For example, if a user is configured with update restrictions to all `Article` objects and has update access via `Article` permissions, they will be unauthorized to update that content.
@@ -342,6 +364,27 @@ Mirroring the example above, we can explicitly set allowances for a role via:
     db.session.commit()
 
 .. note:: In cases where both Role/Group allowances and content permissions are conflicting, the most stringent set of permissions will be used. For example, if a user is configured with read access to all `Article` objects but doesn't have access via `Article` permissions, they will be unauthorized to view that content.
+
+To configure default allowances for models inheriting the ``AllowancesMixin``, explicitly set the ``__allowances__`` property on the model:
+
+.. code-block:: python
+
+  # allow everything by default (default)
+  class Role(db.Model, RestrictionMixin):
+      __allowances__ = '*'
+
+  # restrict everything by default (common fail-safe)
+  class Role(db.Model, RestrictionMixin):
+      __allowances__ = {}
+
+  # create specific allowances for items in the `articles` table by default
+  class Role(db.Model, RestrictionMixin):
+      __allowances__ = {
+        'articles': ['create', 'read']
+      }
+
+
+.. note:: By default, allowances are set to allow all actions against all models of the application (wide open). To enable a fail-safe where all actions to all models are not allowed by default, use ``__allowances__ = {}`` when configuring models with the ``AllowancesMixin``.
 
 
 Authorization Schemes
@@ -406,7 +449,7 @@ Below is an example of how this scheme might be used:
     def revoke_article(article):
         # raise Unauthorized if the `current_user` is not
         # authorized to revoke the article. In this example,
-        # `revoke` is a custom authorization scheme. 
+        # `revoke` is a custom authorization scheme.
         pass
 
     # explicit
@@ -528,11 +571,11 @@ Role/Group Authorization
 ++++++++++++++++++++++++
 
 * ``RestrictionsMixin``: A mixin that enables restriction checking on ``Group`` or ``Role`` models associated with the ``current_user``. Database columns included in this mixin are:
-    
+
     - ``restrictions``: JSON data encoding content restrictions associated with the group.
 
 * ``AllowancesMixin``: A mixin that enables permission checking on ``Group`` or ``Role`` models associated with the ``current_user``. Database columns included in this mixin are:
-    
+
     - ``allowances``: JSON data encoding content permissions associated with the group.
 
 
@@ -732,7 +775,7 @@ Usage with Factory Boy
 By default, common factory-pattern utilities used in testing frameworks will set unreferenced properties to ``None`` instead of using model defaults for a property. To avoid this and set permissions explicitly during testing, use the ``factory.LazyFunction`` decorator with the ``default_permissions`` function from this package for any ``permissions`` properties on content models. See the example below for additional context:
 
 .. code-block:: python
-    
+
     import factory
 
     from flask_authorize import default_permissions
@@ -834,7 +877,7 @@ When used in conjunction with `Flask-Occam <https://github.com/bprinty/Flask-Occ
 
     @app.route('/items/<id(Item):item>')
     class SingleItem(object):
-        
+
         @authorize.read
         def get(self, item):
             """
@@ -872,8 +915,8 @@ When used in conjunction with `Flask-Occam <https://github.com/bprinty/Flask-Occ
                 id (int): Identifier for item.
 
             Parameters:
-                name (str): (optional) Name for item 
-                url (str): (optional) URL for item 
+                name (str): (optional) Name for item
+                url (str): (optional) URL for item
 
             Response:
                 id (int): Identifier for item.
