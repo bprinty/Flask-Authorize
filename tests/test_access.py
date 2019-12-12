@@ -9,7 +9,7 @@
 # -------
 from flask import g
 
-from .fixtures import Article, ArticleFactory, authorize
+from .fixtures import Article, ArticleFactory, Item, ItemFactory, authorize
 
 
 # tests
@@ -23,14 +23,19 @@ class TestAccessControl(object):
             owner=reader,
             group=reader.groups[0]
         ).set_permissions('777')
+        item = ItemFactory.create()
 
         g.user = allowed
         assert authorize.read(article)
         assert authorize.create(Article)
+        assert authorize.read(item)
+        assert authorize.create(item)
 
         g.user = unallowed
         assert not authorize.read(article)
         assert not authorize.create(Article)
+        assert not authorize.item(item)
+        assert not authorize.item(Item)
         return
 
     def test_restrictions(self, client, reader, restricted, unrestricted):
@@ -40,14 +45,19 @@ class TestAccessControl(object):
             owner=reader,
             group=reader.groups[0]
         ).set_permissions('777')
+        item = ItemFactory.create()
 
         g.user = unrestricted
         assert authorize.read(article)
         assert authorize.create(Article)
+        assert authorize.read(item)
+        assert authorize.create(Item)
 
         g.user = restricted
         assert not authorize.read(article)
         assert not authorize.create(Article)
+        assert not authorize.read(item)
+        assert not authorize.create(Item)
         return
 
 

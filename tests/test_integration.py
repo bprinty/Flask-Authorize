@@ -45,11 +45,13 @@ class TestDefaults(object):
         from flask_authorize import default_allowances
         assert default_allowances() == dict(
             articles=['create', 'delete', 'read', 'update'],
+            items=['create', 'delete', 'read', 'update'],
         )
 
         from flask_authorize import default_restrictions
         assert default_restrictions() == dict(
-            articles=[]
+            articles=[],
+            items=[]
         )
         return
 
