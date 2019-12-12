@@ -161,22 +161,26 @@ def default_allowances(cls=None):
     back to app configuration if no default permission
     is explicitly set.
     """
-    if cls is not None:
-        if not isinstance(cls.__allowances__, dict):
-            raise AssertionError('Allowances for model {} must be dictionary type!'.format(cls.__name__))
-
     # if necessary, gather database models to create default
     global MODELS
     if not MODELS:
         gather_models()
+
+    # configure defaults
     default = {
         key: current_app.config['AUTHORIZE_DEFAULT_ALLOWANCES']
         for key in MODELS
     }
 
-    # overwrite specified allowances
-    if cls is not None:
-        default.update(cls.__allowances__)
+    # if called directly, return the defaults
+    if cls is None:
+        return default
+
+    # if allowances are explicitly set to something else, use them
+    if isinstance(cls.__allowances__, dict):
+        return cls.__allowances__
+
+    # otherwise, use defaults
     return default
 
 
@@ -186,21 +190,30 @@ def default_restrictions(cls=None):
     back to app configuration if no default permission
     is explicitly set.
     """
-    if cls is not None:
-        if not isinstance(cls.__restrictions__, dict):
-            raise AssertionError('Restrictions for model {} must be dictionary type!'.format(cls.__name__))
-
     # if necessary, gather database models to create default
     global MODELS
     if not MODELS:
         gather_models()
+
+    # configure defaults
     default = {
         key: current_app.config['AUTHORIZE_DEFAULT_RESTRICTIONS']
         for key in MODELS
     }
 
+    # if called directly, return the defaults
+    if cls is None:
+        return default
+
+    # if set to fail safe, use that
+    if cls.__restrictions__ == '*' or cls.__restrictions__ is True:
+        return {
+            key: current_app.config['AUTHORIZE_DEFAULT_ACTIONS']
+            for key in MODELS
+        }
+
     # overwrite specified allowances
-    if cls is not None:
+    if isinstance(cls.__restrictions__, dict):
         default.update(cls.__restrictions__)
     return default
 
@@ -467,7 +480,7 @@ class AllowancesMixin(object):
     """
     Mixin providing group or role based access control.
     """
-    __allowances__ = dict()
+    __allowances__ = '*'
 
     @declared_attr
     def allowances(cls):

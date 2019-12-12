@@ -70,8 +70,9 @@ class Authorize(object):
             group=['read', 'update'],
             other=['read']
         ))
+        app.config.setdefault('AUTHORIZE_DEFAULT_ACTIONS', ['create', 'delete', 'read', 'update'])
         app.config.setdefault('AUTHORIZE_DEFAULT_RESTRICTIONS', [])
-        app.config.setdefault('AUTHORIZE_DEFAULT_ALLOWANCES', ['create', 'delete', 'read', 'update'])
+        app.config.setdefault('AUTHORIZE_DEFAULT_ALLOWANCES', app.config['AUTHORIZE_DEFAULT_ACTIONS'])
         app.config.setdefault('AUTHORIZE_MODEL_PARSER', 'table')
         app.config.setdefault('AUTHORIZE_IGNORE_PROPERTY', '__check_access__')
         app.config.setdefault('AUTHORIZE_ALLOW_ANONYMOUS_ACTIONS', False)
