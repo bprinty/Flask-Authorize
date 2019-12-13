@@ -81,12 +81,13 @@ Defining database models:
 
         id = db.Column(db.Integer, primary_key=True)
         name = db.Column(db.String(255), index=True, nullable=False)
+        content = db.Column(db.Text)
 
 
 Defining endpoint actions:
 
 .. code-block:: python
-    
+
     from flask import jsonify
     from werkzeug import NotFound, Unauthorized
 
@@ -94,7 +95,10 @@ Defining endpoint actions:
     @login.logged_in
     @authorize.create(Article)
     def article():
-        article = Article(**request.json)
+        article = Article(
+          name=request.json.get('name'),
+          content=request.json.get('content'),
+        )
         db.session.add(article)
         db.session.commit()
         return jsonify(msg='Created Article'), 200
@@ -120,8 +124,11 @@ Defining endpoint actions:
             if not authorize.update(article):
                 raise Unauthorized
 
-            for key, value in request.json.items():
-                setattr(article, key, value)
+            # update values
+            if 'name' in request.json:
+                article.name = request.json['name']
+            if 'content' in request.json:
+                article.content = request.json['content']
             db.session.commit()
 
             return jsonify(id=article.id, name=article.name), 200
