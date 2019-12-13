@@ -168,7 +168,7 @@ Additionally, if you've configured your application to dispatch request processi
 
     @authorize.create(Article)
     def create_article(name):
-        article = Article(**request.json)
+        article = Article(name=name)
         db.session.add(article)
         db.session.commit()
         return article

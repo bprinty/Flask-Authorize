@@ -871,7 +871,10 @@ When used in conjunction with `Flask-Occam <https://github.com/bprinty/Flask-Occ
                 Missing: 404 Not Found
                 Failure: 422 Invalid Request
             """
-            item = Item.create(**request.json)
+            item = Item.create(
+              name=request.json.get('name'),
+              url=request.json.get('url')
+            )
             return item.json(), 201
 
 
@@ -928,7 +931,10 @@ When used in conjunction with `Flask-Occam <https://github.com/bprinty/Flask-Occ
                 Missing: 404 Not Found
                 Failure: 422 Invalid Request
             """
-            item.update(**request.json)
+            item.update(
+              name=request.json.get('name', item.name),
+              url=request.json.get('url', item.url)
+            )
             return item.json(), 200
 
         @authorize.delete
