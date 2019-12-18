@@ -4,6 +4,15 @@ Overview
 
 Flask-Authorize is a Flask extension designed to simplify the process of incorporating Access Control Lists (ACLs) and Role-Based Access Control (RBAC) into applications housing sensitive data, allowing developers to focus on the actual code for their application instead of logic for enforcing permissions. It uses a unix-like permissions scheme for enforcing access permissions on existing content, and also provides mechanisms for globally enforcing permissions throughout an application.
 
+There are quite a few packages designed to simplify the process of adding ACLs and RBAC to a Flask application:
+
+* `Flask-Principal <https://pythonhosted.org/Flask-Principal/>`_
+* `Flask-ACL <https://mikeboers.github.io/Flask-ACL/>`_
+* `Flask-RBAC <https://flask-rbac.readthedocs.io/en/latest/>`_
+* `Flask-Security <https://pythonhosted.org/Flask-Security/>`_
+
+And each provides a different developer experience and makes different assumptions in their design. This package is yet another take at solving the same problem, resulting in a slightly different development experience when working with Flask applications. The developers of this package recommend you check out these alternatives along with Flask-Authorize to see if they fit your needs better.
+
 
 A Minimal Application
 ---------------------
