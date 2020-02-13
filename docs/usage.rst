@@ -370,15 +370,15 @@ To configure default allowances for models inheriting the ``AllowancesMixin``, e
 .. code-block:: python
 
   # allow everything by default (default)
-  class Role(db.Model, RestrictionMixin):
+  class Role(db.Model, AllowancesMixin):
       __allowances__ = '*'
 
   # restrict everything by default (common fail-safe)
-  class Role(db.Model, RestrictionMixin):
+  class Role(db.Model, AllowancesMixin):
       __allowances__ = {}
 
   # create specific allowances for items in the `articles` table by default
-  class Role(db.Model, RestrictionMixin):
+  class Role(db.Model, AllowancesMixin):
       __allowances__ = {
         'articles': ['create', 'read']
       }
