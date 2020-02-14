@@ -72,11 +72,15 @@ Defining database models:
 
 
     class Group(db.Model, RestrictionsMixin):
+        __tablename__ = 'groups'
+        
         id = db.Column(db.Integer, primary_key=True)
         name = db.Column(db.String(255), nullable=False, unique=True)
 
 
     class Role(db.Model, AllowancesMixin):
+        __tablename__ = 'roles'
+        
         id = db.Column(db.Integer, primary_key=True)
         name = db.Column(db.String(255), nullable=False, unique=True)
 
