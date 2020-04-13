@@ -13,7 +13,7 @@ import json
 from flask import current_app
 from werkzeug.exceptions import Unauthorized
 from sqlalchemy import Column, ForeignKey
-from sqlalchemy.types import Integer, String
+from sqlalchemy.types import Integer, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import operators
 from sqlalchemy.ext.declarative import declared_attr
@@ -27,7 +27,7 @@ class JSON(TypeDecorator):
     SQLite, MySQL, and PostgreSQL compatible type
     for json column.
     """
-    impl = String
+    impl = Text
 
     @property
     def python_type(self):
@@ -51,7 +51,7 @@ class PipedList(TypeDecorator):
     separated by pipes '|' when referenced in the
     database.
     """
-    impl = String
+    impl = Text
 
     @property
     def python_type(self):
@@ -61,7 +61,7 @@ class PipedList(TypeDecorator):
         if op in (operators.like_op,
                   operators.notlike_op,
                   operators.contains_op):
-            return String()
+            return Text()
         else:
             return self
 
