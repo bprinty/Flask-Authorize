@@ -486,6 +486,9 @@ Return ``True`` if the ``current_user`` is not associated with the specified ``G
         pass
 
 
+.. note:: For this method to be supported, the ``Group`` model must have a ``name`` property. The ``name`` property of that model is used as the key for checking membership. All ``Groups`` tied to ``Users`` must have a unique ``name``.
+
+
 authorize.has_role('<role>')
 ++++++++++++++++++++++++++++
 
@@ -505,6 +508,9 @@ Return ``True`` if the ``current_user`` is not associated with the specified ``R
         if not authorize.has_role('admin'):
             raise Unauthorized
         pass
+
+
+.. note:: For this method to be supported, the ``Role`` model must have a ``name`` property. The ``name`` property of that model is used as the key for checking membership. All ``Roles`` tied to ``Users`` must have a unique ``name``.
 
 
 .. authorize.is_role('<role>')
