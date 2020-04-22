@@ -21,6 +21,7 @@ from .mixins import default_permissions, default_allowances, table_key
 AUTHORIZE_CACHE = dict()
 CURRENT_USER = None
 EXCEPTION = None
+STRICT = True
 
 
 # default customizations
@@ -45,7 +46,7 @@ class Authorize(object):
     routing.
     """
 
-    def __init__(self, app=None, current_user=flask_login_current_user, exception=Unauthorized):
+    def __init__(self, app=None, current_user=flask_login_current_user, exception=Unauthorized, strict=True):
         if app is not None:
             self.init_app(app)
 
@@ -56,11 +57,16 @@ class Authorize(object):
             global CURRENT_USER
             CURRENT_USER = current_user
 
+        # set default exception
         if exception is not None:
             if not isinstance(exception, type):
                 raise AssertionError('Error: `exception` input must be Exception type')
             global EXCEPTION
             EXCEPTION = Unauthorized
+
+        # set mode
+        global STRICT
+        STRICT = strict
         return
 
     def init_app(self, app):
@@ -129,10 +135,16 @@ def user_has_role(user, roles):
     """
     Check if specified user has one of the specified roles.
     """
+    global STRICT
     if not hasattr(user, 'roles'):
         return False
     for role in user.roles:
-        check = role.name if hasattr(role, 'name') else str(role)
+        if hasattr(role, 'name'):
+            check = role.name
+        elif not STRICT:
+            check = str(role)
+        else:
+            raise AssertionError('`Role` model has no `name` property for checking membership.')
         if check in roles:
             return True
     return False
@@ -142,10 +154,16 @@ def user_in_group(user, groups):
     """
     Check if specified user is in one of the specified groups.
     """
+    global STRICT
     if not hasattr(user, 'groups'):
         return False
     for group in user.groups:
-        check = group.name if hasattr(group, 'name') else str(group)
+        if hasattr(group, 'name'):
+            check = group.name
+        elif not STRICT:
+            check = str(group)
+        else:
+            raise AssertionError('`Group` model has no `name` property for checking membership.')
         if check in groups:
             return True
     return False
@@ -298,7 +316,7 @@ class Authorizer(object):
             # check if authorized
             auth = AUTHORIZE_CACHE[func.__name__]
             if not auth.allowed(*check):
-                raise Unauthorized
+                raise EXCEPTION
 
             return func(*args, **kwargs)
 

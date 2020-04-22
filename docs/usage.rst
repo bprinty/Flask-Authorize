@@ -742,6 +742,9 @@ what can be customized:
                   used as a decorator and the current user does not have authorization
                   to perform an action. By default, this uses the ``Unauthorized``
                   exception from ``werkzeug.exceptions``.
+* ``strict`` - Whether or not to throw errors when reserved model properties like
+               ``Role.name`` or ``Group.name`` can't be found when using ``has_role``
+               or ``has_group`` decorators. The default is ``True``.
 
 
 The code below details how you can override all of these configuration options:
@@ -761,8 +764,9 @@ The code below details how you can override all of these configuration options:
 
     app = Flask(__name__)
     authorize = Authorize(
-        current_user=get_current_user
-        exception=MyUnauthorizedException
+        current_user=get_current_user,
+        exception=MyUnauthorizedException,
+        strict=False,
     )
 
 
