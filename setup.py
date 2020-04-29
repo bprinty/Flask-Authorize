@@ -6,18 +6,32 @@
 # ------------------------------------------------
 
 
-# config
-# ------
+# imports
+# -------
+import re
 try:
     from setuptools import setup, find_packages
 except ImportError:
     from distutils.core import setup, find_packages
 
 
-config = __import__('flask_authorize')
-with open('requirements.txt', 'r') as reqs:
-    requirements = map(lambda x: x.rstrip(), reqs.readlines())
+# config
+# ------
+class Config:
+    def __init__(self, fi):
+        with open(fi) as meta:
+            for m in re.findall(r'(__[a-z]+__).*=.*[\'"](.+)[\'"]', meta.read()):
+                setattr(self, m[0], m[1])
+        return
 
+
+config = Config('flask_authorize/__init__.py')
+
+
+# requirements
+# ------------
+with open('requirements.txt', 'r') as reqs:
+    requirements = list(map(lambda x: x.rstrip(), reqs.readlines()))
 
 test_requirements = [
     'pytest',
@@ -26,8 +40,8 @@ test_requirements = [
 ]
 
 
-# files
-# -----
+# readme
+# ------
 with open('README.rst') as readme_file:
     readme = readme_file.read()
 
