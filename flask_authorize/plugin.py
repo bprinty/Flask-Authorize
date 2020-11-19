@@ -62,7 +62,7 @@ class Authorize(object):
             if not isinstance(exception, type):
                 raise AssertionError('Error: `exception` input must be Exception type')
             global EXCEPTION
-            EXCEPTION = Unauthorized
+            EXCEPTION = exception
 
         # set mode
         global STRICT
