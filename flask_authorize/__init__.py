@@ -5,7 +5,7 @@ __url__ = 'https://github.com/bprinty/Flask-Authorize'
 __info__ = 'Flask plugin for content authorization and access control'
 __author__ = 'Blake Printy'
 __email__ = 'bprinty@gmail.com'
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 
 
 from .mixins import RestrictionsMixin           ## noqa
