@@ -26,6 +26,7 @@ class Config(object):
     PROPAGATE_EXCEPTIONS = False
     SQLALCHEMY_DATABASE_URI = 'sqlite:///{}/app.db'.format(SANDBOX)
     AUTHORIZE_ALLOW_ANONYMOUS_ACTIONS = True
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 
 app = Flask(__name__)

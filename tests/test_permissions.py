@@ -28,7 +28,7 @@ class TestOtherPermissions(object):
     def test_other_delete(self, client, reader, editor):
 
         # other open read permissions
-        g.user = None
+        g.user = editor
         article = ArticleFactory.create(
             name='Other Delete Open Article',
             owner=editor,
@@ -40,7 +40,7 @@ class TestOtherPermissions(object):
         assert query(article.name, 'delete')
 
         # other closed read permissions
-        g.user = None
+        g.user = editor
         article = ArticleFactory.create(
             name='Other Delete Closed Article',
             owner=editor,
@@ -55,7 +55,7 @@ class TestOtherPermissions(object):
     def test_other_read(self, client, reader, editor):
 
         # other open read permissions
-        g.user = None
+        g.user = editor
         article = ArticleFactory.create(
             name='Other Read Open Article',
             owner=editor,
@@ -67,7 +67,7 @@ class TestOtherPermissions(object):
         assert query(article.name, 'read')
 
         # other closed read permissions
-        g.user = None
+        g.user = editor
         article = ArticleFactory.create(
             name='Other Read Closed Article',
             owner=editor,
@@ -82,7 +82,7 @@ class TestOtherPermissions(object):
     def test_other_update(self, reader, editor):
 
         # other open update permissions
-        g.user = None
+        g.user = editor
         article = ArticleFactory.create(
             name='Other Write Open Article',
             owner=editor,
@@ -94,12 +94,13 @@ class TestOtherPermissions(object):
         assert query(article.name, 'update')
 
         # other closed update permissions
-        g.user = None
+        g.user = editor
         article = ArticleFactory.create(
             name='Other Write Closed Article',
             owner=editor,
             group=editor.groups[0]
         ).set_permissions('662')
+
         g.user = reader
         assert not authorize.update(article)
         assert not query(article.name, 'update')
@@ -107,7 +108,7 @@ class TestOtherPermissions(object):
 
     def test_other_custom(self, reader, editor):
         # other open custom permissions
-        g.user = None
+        g.user = editor
         article = ArticleFactory.create(
             name='Other Custom Open Article',
             owner=editor,
@@ -119,12 +120,13 @@ class TestOtherPermissions(object):
         assert query(article.name, 'custom')
 
         # other closed custom permissions
-        g.user = None
+        g.user = editor
         article = ArticleFactory.create(
             name='Other Custom Closed Article',
             owner=editor,
             group=editor.groups[0]
         )
+
         g.user = reader
         assert not authorize.custom(article)
         assert not query(article.name, 'custom')

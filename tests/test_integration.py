@@ -59,7 +59,7 @@ class TestDefaults(object):
 class TestIntegration(object):
 
     def test_in_group_or_read_and_create(self, client, reader, editor, admin, anonymous):
-        g.user = None
+        g.user = reader
         article = ArticleFactory.create(
             name='Complex Article 1',
             owner=reader,
@@ -80,10 +80,14 @@ class TestIntegration(object):
         g.user = anonymous
         with pytest.raises(Unauthorized):
             in_group_or_read_and_create(article)
+
+        g.user = None
+        with pytest.raises(Unauthorized):
+            in_group_or_read_and_create(article)
         return
 
     def test_has_role_or_read(self, client, reader, editor, admin, anonymous):
-        g.user = None
+        g.user = reader
         article = ArticleFactory.create(
             name='Complex Article 2',
             owner=reader,
@@ -99,6 +103,10 @@ class TestIntegration(object):
 
         # errors
         g.user = anonymous
+        with pytest.raises(Unauthorized):
+            has_role_or_read(article)
+
+        g.user = None
         with pytest.raises(Unauthorized):
             has_role_or_read(article)
         return
@@ -134,7 +142,7 @@ class TestIntegration(object):
 class TestQueryFilters(object):
 
     def test_query_filter_operations(self, reader, editor, anonymous):
-        g.user = None
+        g.user = reader
         article = ArticleFactory.create(
             name='Query Filter Article',
             owner=reader,
@@ -164,6 +172,15 @@ class TestQueryFilters(object):
 
         # and_ filter with negative query
         g.user = anonymous
+        articles = Article.query.filter(and_(
+                Article.name == article.name,
+                Article.authorized('read')
+            )
+        ).all()
+        assert not articles
+
+        # and_ filter with None user/negative query
+        g.user = None
         articles = Article.query.filter(and_(
                 Article.name == article.name,
                 Article.authorized('read')

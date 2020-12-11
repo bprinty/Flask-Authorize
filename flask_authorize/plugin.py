@@ -335,7 +335,8 @@ class Authorizer(object):
 
         # don't allow anything for anonymous users
         if user is None:
-            return current_app.config['AUTHORIZE_ALLOW_ANONYMOUS_ACTIONS']
+            if not current_app.config["AUTHORIZE_ALLOW_ANONYMOUS_ACTIONS"]:
+                return False
 
         # authorize if user has relevant role
         if len(self.has_role):

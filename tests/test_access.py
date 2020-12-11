@@ -17,13 +17,19 @@ from .fixtures import Article, ArticleFactory, Item, ItemFactory, authorize
 class TestAccessControl(object):
 
     def test_allowances(self, client, reader, allowed, unallowed):
-        g.user = None
+        g.user = reader
         article = ArticleFactory.create(
             name='Allowances Open Article',
             owner=reader,
             group=reader.groups[0]
         ).set_permissions('777')
         item = ItemFactory.create()
+
+        g.user = None
+        assert authorize.read(article)
+        assert authorize.create(Article)
+        assert authorize.read(item)
+        assert authorize.create(item)
 
         g.user = allowed
         assert authorize.read(article)
@@ -39,13 +45,19 @@ class TestAccessControl(object):
         return
 
     def test_restrictions(self, client, reader, restricted, unrestricted):
-        g.user = None
+        g.user = reader
         article = ArticleFactory.create(
             name='Restrictions Open Article',
             owner=reader,
             group=reader.groups[0]
         ).set_permissions('777')
         item = ItemFactory.create()
+
+        g.user = None
+        assert authorize.read(article)
+        assert authorize.create(Article)
+        assert authorize.read(item)
+        assert authorize.create(Item)
 
         g.user = unrestricted
         assert authorize.read(article)
