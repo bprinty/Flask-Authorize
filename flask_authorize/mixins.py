@@ -149,7 +149,7 @@ def default_permissions(cls=None):
     """
     if cls is None or cls.__permissions__ is None:
         return current_app.config['AUTHORIZE_DEFAULT_PERMISSIONS']
-    elif isinstance(cls._permissions__, int):
+    elif isinstance(cls.__permissions__, int):
         return parse_permission_set(cls.__permissions__)
     elif isinstance(cls.__permissions__, dict):
         return cls.__permissions__
@@ -369,13 +369,14 @@ class OwnerMixin(object):
     Mixin providing owner-related database properties
     for object, in the context of enforcing permissions.
     """
+    from .plugin import REFERENCES
     @declared_attr
     def owner_id(cls):
-        return Column(Integer, ForeignKey('users.id'))
+        return Column(Integer, ForeignKey(f'{REFERENCES["user"]["TABLE"]}.id'))
 
     @declared_attr
     def owner(cls):
-        return relationship('User')
+        return relationship(REFERENCES['user']['MODEL'])
 
     @declared_attr
     def owner_permissions(cls):
@@ -391,13 +392,14 @@ class GroupMixin(object):
     Mixin providing group-related database properties
     for object, in the context of enforcing permissions.
     """
+    from .plugin import REFERENCES
     @declared_attr
     def group_id(cls):
-        return Column(Integer, ForeignKey('groups.id'))
+        return Column(Integer, ForeignKey(f'{REFERENCES["user"]["TABLE"]}.id'))
 
     @declared_attr
     def group(cls):
-        return relationship('Group')
+        return relationship(REFERENCES['user']['MODEL'])
 
     @declared_attr
     def group_permissions(cls):
