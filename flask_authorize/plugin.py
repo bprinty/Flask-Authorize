@@ -402,6 +402,21 @@ class Authorizer(object):
                         check = arg.permissions.get('group', [])
                         permitted |= has_permission(operation, check)
 
+            # check special permissions
+            # should probably figure this out instead of cheating.
+            operation = list(operation)[0]
+            
+            if hasattr(arg, "special_users") and CURRENT_USER():
+                for user in arg.special_users.all():
+                    if CURRENT_USER.id == user.id:
+                        permitted |= operation.values() in user.permissions
+
+            if hasattr(arg, "special_groups") and CURRENT_USER():
+                for group in arg.special_groups.all():
+                    if group.entity_id in [x.id for x in CURRENT_USER().groups ]:
+                        
+                        permitted |= operation in group.permissions
+
             if not permitted:
                 return False
 
