@@ -26,6 +26,7 @@ class JSON(TypeDecorator):
     SQLite, MySQL, and PostgreSQL compatible type
     for json column.
     """
+
     impl = Text
 
     @property
@@ -50,6 +51,7 @@ class PipedList(TypeDecorator):
     separated by pipes '|' when referenced in the
     database.
     """
+
     impl = Text
 
     @property
@@ -57,9 +59,7 @@ class PipedList(TypeDecorator):
         return object
 
     def coerce_compared_value(self, op, value):
-        if op in (operators.like_op,
-                  operators.notlike_op,
-                  operators.contains_op):
+        if op in (operators.like_op, operators.notlike_op, operators.contains_op):
             return Text()
         else:
             return self
@@ -67,13 +67,13 @@ class PipedList(TypeDecorator):
     def process_bind_param(self, value, dialect):
         if not value:
             return None
-        return '|'.join(value)
+        return "|".join(value)
 
     def process_result_value(self, value, dialect):
         try:
             if not value:
                 return []
-            return value.split('|')
+            return value.split("|")
         except (ValueError, TypeError):
             return None
 
@@ -91,12 +91,13 @@ def gather_models():
     global MODELS
 
     from flask import current_app
-    if 'sqlalchemy' not in current_app.extensions:
+
+    if "sqlalchemy" not in current_app.extensions:
         return
-    check = current_app.config['AUTHORIZE_IGNORE_PROPERTY']
+    check = current_app.config["AUTHORIZE_IGNORE_PROPERTY"]
 
     # inspect current models and add to map
-    db = current_app.extensions['sqlalchemy'].db
+    db = current_app.extensions["sqlalchemy"].db
     for cls in db.Model._decl_class_registry.values():
         if isinstance(cls, type) and issubclass(cls, db.Model):
             if hasattr(cls, check) and not getattr(cls, check):
@@ -111,21 +112,21 @@ def table_key(cls):
     configuration included for extension.
     """
     # class name
-    if current_app.config['AUTHORIZE_MODEL_PARSER'] == 'class':
+    if current_app.config["AUTHORIZE_MODEL_PARSER"] == "class":
         return cls.__name__
 
     # lowercase name
-    elif current_app.config['AUTHORIZE_MODEL_PARSER'] == 'lower':
+    elif current_app.config["AUTHORIZE_MODEL_PARSER"] == "lower":
         return cls.__name__.lower()
 
     # snake_case name
-    elif current_app.config['AUTHORIZE_MODEL_PARSER'] == 'snake':
-        words = re.findall(r'([A-Z][0-9a-z]+)', cls.__name__)
+    elif current_app.config["AUTHORIZE_MODEL_PARSER"] == "snake":
+        words = re.findall(r"([A-Z][0-9a-z]+)", cls.__name__)
         if len(words) > 1:
-            return '_'.join(map(lambda x: x.lower(), words))
+            return "_".join(map(lambda x: x.lower(), words))
 
     # table name
-    elif current_app.config['AUTHORIZE_MODEL_PARSER'] == 'table':
+    elif current_app.config["AUTHORIZE_MODEL_PARSER"] == "table":
         mapper = inspect(cls)
         return mapper.tables[0].name
 
@@ -134,9 +135,11 @@ def default_permissions_factory(name):
     """
     Factory for returning default permissions based on name.
     """
+
     def _(cls=None):
         perms = default_permissions(cls)
         return perms.get(name, [])
+
     return _
 
 
@@ -147,7 +150,7 @@ def default_permissions(cls=None):
     is explicitly set.
     """
     if cls is None or cls.__permissions__ is None:
-        return current_app.config['AUTHORIZE_DEFAULT_PERMISSIONS']
+        return current_app.config["AUTHORIZE_DEFAULT_PERMISSIONS"]
     elif isinstance(cls._permissions__, int):
         return parse_permission_set(cls.__permissions__)
     elif isinstance(cls.__permissions__, dict):
@@ -167,8 +170,7 @@ def default_allowances(cls=None):
 
     # configure defaults
     default = {
-        key: current_app.config['AUTHORIZE_DEFAULT_ALLOWANCES']
-        for key in MODELS
+        key: current_app.config["AUTHORIZE_DEFAULT_ALLOWANCES"] for key in MODELS
     }
 
     # if called directly, return the defaults
@@ -196,8 +198,7 @@ def default_restrictions(cls=None):
 
     # configure defaults
     default = {
-        key: current_app.config['AUTHORIZE_DEFAULT_RESTRICTIONS']
-        for key in MODELS
+        key: current_app.config["AUTHORIZE_DEFAULT_RESTRICTIONS"] for key in MODELS
     }
 
     # if called directly, return the defaults
@@ -205,11 +206,8 @@ def default_restrictions(cls=None):
         return default
 
     # if set to fail safe, use that
-    if cls.__restrictions__ == '*' or cls.__restrictions__ is True:
-        return {
-            key: current_app.config['AUTHORIZE_DEFAULT_ACTIONS']
-            for key in MODELS
-        }
+    if cls.__restrictions__ == "*" or cls.__restrictions__ is True:
+        return {key: current_app.config["AUTHORIZE_DEFAULT_ACTIONS"] for key in MODELS}
 
     # overwrite specified allowances
     if isinstance(cls.__restrictions__, dict):
@@ -227,7 +225,7 @@ def permission_list(number):
         return number
 
     ret = []
-    for mask, name in zip([1, 2, 4], ['delete', 'read', 'update']):
+    for mask, name in zip([1, 2, 4], ["delete", "read", "update"]):
         if number & mask:
             ret.append(name)
     return ret
@@ -247,11 +245,11 @@ def parse_permission_set(number):
     # check validity of input
     digits = len(str(number))
     if digits > 3:
-        raise AssertionError('Invalid permissions: {}'.format(number))
+        raise AssertionError("Invalid permissions: {}".format(number))
 
     # gather permissions
     result = {}
-    for digit, check in zip([0, 1, 2], ['other', 'group', 'owner']):
+    for digit, check in zip([0, 1, 2], ["other", "group", "owner"]):
         perm = int(number) // 10 ** digit % 10
         result[check] = permission_list(perm)
     return result
@@ -264,11 +262,12 @@ class BasePermissionsMixin(object):
     Abstract base class for enabling common functionality
     across various optional permission schemes.
     """
+
     __permissions__ = None
 
     @declared_attr
     def other_permissions(cls):
-        return Column(PipedList, default=default_permissions_factory('other'))
+        return Column(PipedList, default=default_permissions_factory("other"))
 
     @classmethod
     def authorized(cls, check):
@@ -300,26 +299,57 @@ class BasePermissionsMixin(object):
                 ))
         """
         from .plugin import CURRENT_USER
+
         current_user = CURRENT_USER()
         clauses = [
             cls.other_permissions.contains(check),
         ]
-        if hasattr(current_user, 'id'):
-            if hasattr(cls, 'owner_id'):
-                clauses.append(and_(
-                    current_user.id == cls.owner_id,
-                    cls.owner_permissions.contains(check)
-                ))
-            if hasattr(cls, 'group_id') and hasattr(current_user, 'groups'):
-                clauses.append(and_(
-                    cls.group_id.in_([x.id for x in current_user.groups]),
-                    cls.group_permissions.contains(check)
-                ))
+        if hasattr(current_user, "id"):
+            if hasattr(cls, "owner_id"):
+                clauses.append(
+                    and_(
+                        current_user.id == cls.owner_id,
+                        cls.owner_permissions.contains(check),
+                    )
+                )
+            if hasattr(cls, "group_id") and hasattr(current_user, "groups"):
+                clauses.append(
+                    and_(
+                        cls.group_id.in_([x.id for x in current_user.groups]),
+                        cls.group_permissions.contains(check),
+                    )
+                )
 
+            # Check user for special permissions
             if hasattr(current_user, f"special_{cls.__tablename__}"):
                 clauses.append(
-                    cls.id.in_([x.resource_id for x in getattr(current_user, f"special_{cls.__tablename__}") if check in x.permissions])
+                    cls.id.in_(
+                        [
+                            x.resource_id
+                            for x in getattr(
+                                current_user, f"special_{cls.__tablename__}"
+                            )
+                            if check in x.permissions
+                        ]
+                    )
                 )
+
+            # Check if user is part of a group that has special access
+            if hasattr(cls, "special_groups"):
+                group_list = [
+                    x.special_groups.all()
+                    for x in cls.query.all()
+                    if x.special_groups.all()
+                ]
+                overlapping_groups = [
+                    y.resource_id
+                    for x in group_list
+                    for y in x
+                    if y.entity_id in [n.id for n in current_user.groups]
+                    if check in y.permissions
+                ]
+                clauses.append(cls.id.in_(overlapping_groups))
+
         return or_(*clauses)
 
     @property
@@ -328,8 +358,8 @@ class BasePermissionsMixin(object):
         Proxy for interacting with permissions dictionary.
         """
         result = {}
-        for name in ['owner', 'group', 'other']:
-            prop = name + '_permissions'
+        for name in ["owner", "group", "other"]:
+            prop = name + "_permissions"
             if hasattr(self, prop):
                 result[name] = getattr(self, prop)
         return result
@@ -339,10 +369,10 @@ class BasePermissionsMixin(object):
         """
         Setter for permissions dictionary proxy.
         """
-        for name in ['owner', 'group', 'other']:
+        for name in ["owner", "group", "other"]:
             if name not in value:
                 continue
-            prop = name + '_permissions'
+            prop = name + "_permissions"
             if hasattr(self, prop):
                 setattr(self, prop, value[name])
         return
@@ -351,8 +381,8 @@ class BasePermissionsMixin(object):
         """
         Set permissions explicitly for ACL-enforced content.
         """
-        if 'authorize' in current_app.extensions:
-            authorize = current_app.extensions['authorize']
+        if "authorize" in current_app.extensions:
+            authorize = current_app.extensions["authorize"]
             if not authorize.update(self):
                 raise Unauthorized
 
@@ -373,17 +403,18 @@ class OwnerMixin(object):
     Mixin providing owner-related database properties
     for object, in the context of enforcing permissions.
     """
+
     @declared_attr
     def owner_id(cls):
-        return Column(Integer, ForeignKey('users.id'))
+        return Column(Integer, ForeignKey("users.id"))
 
     @declared_attr
     def owner(cls):
-        return relationship('User')
+        return relationship("User")
 
     @declared_attr
     def owner_permissions(cls):
-        return Column(PipedList, default=default_permissions_factory('owner'))
+        return Column(PipedList, default=default_permissions_factory("owner"))
 
 
 class OwnerPermissionsMixin(BasePermissionsMixin, OwnerMixin):
@@ -395,17 +426,18 @@ class GroupMixin(object):
     Mixin providing group-related database properties
     for object, in the context of enforcing permissions.
     """
+
     @declared_attr
     def group_id(cls):
-        return Column(Integer, ForeignKey('groups.id'))
+        return Column(Integer, ForeignKey("groups.id"))
 
     @declared_attr
     def group(cls):
-        return relationship('Group')
+        return relationship("Group")
 
     @declared_attr
     def group_permissions(cls):
-        return Column(PipedList, default=default_permissions_factory('group'))
+        return Column(PipedList, default=default_permissions_factory("group"))
 
 
 class GroupPermissionsMixin(BasePermissionsMixin, GroupMixin):
@@ -437,6 +469,7 @@ class PermissionsMixin(BasePermissionsMixin, OwnerMixin, GroupMixin):
     Mixin providing owner and group-related database properties
     for object, in the context of enforcing permissions.
     """
+
     pass
 
 
@@ -462,6 +495,7 @@ class RestrictionsMixin(object):
     """
     Mixin providing group or role based access control.
     """
+
     __restrictions__ = dict()
 
     @declared_attr
@@ -484,7 +518,8 @@ class AllowancesMixin(object):
     """
     Mixin providing group or role based access control.
     """
-    __allowances__ = '*'
+
+    __allowances__ = "*"
 
     @declared_attr
     def allowances(cls):
