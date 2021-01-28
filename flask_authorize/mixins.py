@@ -4,7 +4,6 @@
 #
 # ------------------------------------------------
 
-
 # imports
 # -------
 import six
@@ -316,6 +315,11 @@ class BasePermissionsMixin(object):
                     cls.group_id.in_([x.id for x in current_user.groups]),
                     cls.group_permissions.contains(check)
                 ))
+
+            if hasattr(current_user, f"special_{cls.__tablename__}"):
+                clauses.append(
+                    cls.id.in_([x.resource_id for x in getattr(current_user, f"special_{cls.__tablename__}") if check in x.permissions])
+                )
         return or_(*clauses)
 
     @property
