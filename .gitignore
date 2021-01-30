@@ -25,3 +25,6 @@ tests/app.db
 
 # Sphinx
 docs/_build
+
+# IDE files
+.idea/

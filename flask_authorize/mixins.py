@@ -369,14 +369,17 @@ class OwnerMixin(object):
     Mixin providing owner-related database properties
     for object, in the context of enforcing permissions.
     """
-    from .plugin import REFERENCES
+    __user_table_name__ = 'users'
+    __user_model_name__ = 'User'
+
     @declared_attr
     def owner_id(cls):
-        return Column(Integer, ForeignKey(f'{REFERENCES["user"]["TABLE"]}.id'))
+        from .plugin import CURRENT_USER
+        return Column(Integer, ForeignKey(f'{cls.__user_table_name__}.id'), default=lambda _cls: CURRENT_USER().id)
 
     @declared_attr
     def owner(cls):
-        return relationship(REFERENCES['user']['MODEL'])
+        return relationship(cls.__user_model_name__)
 
     @declared_attr
     def owner_permissions(cls):
@@ -392,14 +395,21 @@ class GroupMixin(object):
     Mixin providing group-related database properties
     for object, in the context of enforcing permissions.
     """
-    from .plugin import REFERENCES
+    __group_table_name__ = 'groups'
+    __group_model_name__ = 'Group'
+    __group_name_generator__ = lambda self: uuid4()
+
     @declared_attr
     def group_id(cls):
-        return Column(Integer, ForeignKey(f'{REFERENCES["user"]["TABLE"]}.id'))
+        return Column(
+            Integer,
+            ForeignKey(f'{cls.__group_table_name__}.id'),
+            default=lambda _cls: '-'.join([cls.__tablename__, cls.__group_name_generator__()])
+        )
 
     @declared_attr
     def group(cls):
-        return relationship(REFERENCES['user']['MODEL'])
+        return relationship(cls.__group_model_name__)
 
     @declared_attr
     def group_permissions(cls):

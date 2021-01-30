@@ -22,16 +22,6 @@ AUTHORIZE_CACHE = dict()
 CURRENT_USER = None
 EXCEPTION = None
 STRICT = True
-REFERENCES = {
-    'group': {
-        'TABLE': 'groups',
-        'MODEL': 'Group'
-    },
-    'user': {
-        'TABLE': 'users',
-        'MODEL': 'User'
-    }
-}
 
 
 # default customizations
@@ -56,8 +46,7 @@ class Authorize(object):
     routing.
     """
 
-    def __init__(self, app=None, current_user=flask_login_current_user, exception=Unauthorized,
-                 strict=True, references=REFERENCES):
+    def __init__(self, app=None, current_user=flask_login_current_user, exception=Unauthorized, strict=True):
         if app is not None:
             self.init_app(app)
 
@@ -78,10 +67,6 @@ class Authorize(object):
         # set mode
         global STRICT
         STRICT = strict
-
-        # set references
-        global REFERENCES
-        REFERENCES = references
         return
 
     def init_app(self, app):
