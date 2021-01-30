@@ -257,7 +257,6 @@ def parse_permission_set(number):
         result[check] = permission_list(perm)
     return result
 
-
 # permissions mixins
 # ------------------
 class BasePermissionsMixin(object):
@@ -372,10 +371,14 @@ class OwnerMixin(object):
     __user_table_name__ = 'users'
     __user_model_name__ = 'User'
 
+    @classmethod
+    def get_user_id(cls):
+        from .plugin import CURRENT_USER
+        return CURRENT_USER().id
+
     @declared_attr
     def owner_id(cls):
-        from .plugin import CURRENT_USER
-        return Column(Integer, ForeignKey(f'{cls.__user_table_name__}.id'), default=lambda _cls: CURRENT_USER().id)
+        return Column(Integer, ForeignKey(f'{cls.__user_table_name__}.id'), default=cls.get_user_id)
 
     @declared_attr
     def owner(cls):
@@ -397,14 +400,18 @@ class GroupMixin(object):
     """
     __group_table_name__ = 'groups'
     __group_model_name__ = 'Group'
-    __group_name_generator__ = lambda self: uuid4()
+
+    @classmethod
+    def __group_name_generator__(cls):
+        import uuid
+        return '-'.join([cls.__tablename__, str(uuid.uuid4())])
 
     @declared_attr
     def group_id(cls):
         return Column(
             Integer,
             ForeignKey(f'{cls.__group_table_name__}.id'),
-            default=lambda _cls: '-'.join([cls.__tablename__, cls.__group_name_generator__()])
+            default=cls.__group_name_generator__()
         )
 
     @declared_attr
