@@ -377,20 +377,26 @@ class OwnerMixin(object):
 
     @classmethod
     def get_user_tablename(cls):
+        # format input
+        if isinstance(cls.__user_model__, str):
+            model = cls.__user_model__
+        else:
+            model = cls.__user_model__.__name__
+
         # extract table name from class registry
-        name = None
+        tablename = None
         for c in cls._decl_class_registry.values():
-            if hasattr(c, '__tablename__') and c.__name__ == cls.__user_model__:
-                name = c.__tablename__
+            if hasattr(c, '__tablename__') and c.__name__ == model:
+                tablename = c.__tablename__
                 break
 
         # let user know if user table couldn't be found
-        if name is None:
+        if tablename is None:
             raise AssertionError(
                 'Associated User model must be named `{}` or defined '
-                'with __user_model__ property!'.format(cls.__user_model__))
+                'with __user_model__ property!'.format(model))
 
-        return name
+        return tablename
 
     @declared_attr
     def owner_id(cls):
@@ -424,20 +430,26 @@ class GroupMixin(object):
 
     @classmethod
     def get_group_tablename(cls):
+        # format input
+        if isinstance(cls.__group_model__, str):
+            model = cls.__group_model__
+        else:
+            model = cls.__group_model__.__name__
+
         # extract table name from class registry
-        name = None
+        tablename = None
         for c in cls._decl_class_registry.values():
-            if hasattr(c, '__tablename__') and c.__name__ == cls.__group_model__:
-                name = c.__tablename__
+            if hasattr(c, '__tablename__') and c.__name__ == model:
+                tablename = c.__tablename__
                 break
 
         # let user know if group table couldn't be found
-        if name is None:
+        if tablename is None:
             raise AssertionError(
                 'Associated Group model must be named `{}` or defined '
-                'with __group_model__ property!'.format(cls.__group_model__))
+                'with __group_model__ property!'.format(model))
 
-        return name
+        return tablename
 
     @declared_attr
     def group_id(cls):
