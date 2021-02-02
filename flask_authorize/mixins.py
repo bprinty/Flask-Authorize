@@ -406,7 +406,7 @@ class OwnerMixin(object):
     @declared_attr
     def owner(cls):
         cls.get_user_tablename() # show error on incorrect definition
-        return relationship(cls.__user_model__)
+        return relationship(cls.__user_model__, foreign_keys=[cls.owner_id])
 
     @declared_attr
     def owner_permissions(cls):
@@ -458,7 +458,8 @@ class GroupMixin(object):
 
     @declared_attr
     def group(cls):
-        return relationship(cls.__group_model__)
+        cls.get_group_tablename() # show error on incorrect definition
+        return relationship(cls.__group_model__, foreign_keys=[cls.group_id])
 
     @declared_attr
     def group_permissions(cls):
