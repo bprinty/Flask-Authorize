@@ -368,21 +368,39 @@ class OwnerMixin(object):
     Mixin providing owner-related database properties
     for object, in the context of enforcing permissions.
     """
-    __user_table_name__ = 'users'
-    __user_model_name__ = 'User'
+    __user_model__ = 'User'
 
     @classmethod
-    def get_user_id(cls):
+    def get_user_default(cls):
         from .plugin import CURRENT_USER
         return CURRENT_USER().id
 
+    @classmethod
+    def get_user_tablename(cls):
+        # extract table name from class registry
+        name = None
+        for c in cls._decl_class_registry.values():
+            if hasattr(c, '__tablename__') and c.__name__ == cls.__user_model__:
+                name = c.__tablename__
+                break
+
+        # let user know if user table couldn't be found
+        if name is None:
+            raise AssertionError(
+                'Associated User model must be named `{}` or defined '
+                'with __user_model__ property!'.format(cls.__user_model__))
+
+        return name
+
     @declared_attr
     def owner_id(cls):
-        return Column(Integer, ForeignKey(f'{cls.__user_table_name__}.id'), default=cls.get_user_id)
+        tbl = cls.get_user_tablename()
+        return Column(Integer, ForeignKey('{}.id'.format(tbl)), default=cls.get_user_default)
 
     @declared_attr
     def owner(cls):
-        return relationship(cls.__user_model_name__)
+        cls.get_user_tablename() # show error on incorrect definition
+        return relationship(cls.__user_model__)
 
     @declared_attr
     def owner_permissions(cls):
@@ -398,25 +416,37 @@ class GroupMixin(object):
     Mixin providing group-related database properties
     for object, in the context of enforcing permissions.
     """
-    __group_table_name__ = 'groups'
-    __group_model_name__ = 'Group'
+    __group_model__ = 'Group'
 
     @classmethod
-    def __group_name_generator__(cls):
-        import uuid
-        return '-'.join([cls.__tablename__, str(uuid.uuid4())])
+    def get_group_default(cls):
+        return None
+
+    @classmethod
+    def get_group_tablename(cls):
+        # extract table name from class registry
+        name = None
+        for c in cls._decl_class_registry.values():
+            if hasattr(c, '__tablename__') and c.__name__ == cls.__group_model__:
+                name = c.__tablename__
+                break
+
+        # let user know if group table couldn't be found
+        if name is None:
+            raise AssertionError(
+                'Associated Group model must be named `{}` or defined '
+                'with __group_model__ property!'.format(cls.__group_model__))
+
+        return name
 
     @declared_attr
     def group_id(cls):
-        return Column(
-            Integer,
-            ForeignKey(f'{cls.__group_table_name__}.id'),
-            default=cls.__group_name_generator__()
-        )
+        tbl = cls.get_group_tablename()
+        return Column(Integer, ForeignKey('{}.id'.format(tbl)), default=cls.get_group_default)
 
     @declared_attr
     def group(cls):
-        return relationship(cls.__group_model_name__)
+        return relationship(cls.__group_model__)
 
     @declared_attr
     def group_permissions(cls):
