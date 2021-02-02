@@ -149,7 +149,7 @@ def default_permissions(cls=None):
     """
     if cls is None or cls.__permissions__ is None:
         return current_app.config['AUTHORIZE_DEFAULT_PERMISSIONS']
-    elif isinstance(cls._permissions__, int):
+    elif isinstance(cls.__permissions__, int):
         return parse_permission_set(cls.__permissions__)
     elif isinstance(cls.__permissions__, dict):
         return cls.__permissions__
@@ -256,7 +256,6 @@ def parse_permission_set(number):
         perm = int(number) // 10 ** digit % 10
         result[check] = permission_list(perm)
     return result
-
 
 # permissions mixins
 # ------------------
@@ -369,13 +368,45 @@ class OwnerMixin(object):
     Mixin providing owner-related database properties
     for object, in the context of enforcing permissions.
     """
+    __user_model__ = 'User'
+
+    @classmethod
+    def get_user_default(cls):
+        from .plugin import CURRENT_USER
+        return CURRENT_USER().id
+
+    @classmethod
+    def get_user_tablename(cls):
+        # format input
+        if isinstance(cls.__user_model__, str):
+            model = cls.__user_model__
+        else:
+            model = cls.__user_model__.__name__
+
+        # extract table name from class registry
+        tablename = None
+        for c in cls._decl_class_registry.values():
+            if hasattr(c, '__tablename__') and c.__name__ == model:
+                tablename = c.__tablename__
+                break
+
+        # let user know if user table couldn't be found
+        if tablename is None:
+            raise AssertionError(
+                'Associated User model must be named `{}` or defined '
+                'with __user_model__ property!'.format(model))
+
+        return tablename
+
     @declared_attr
     def owner_id(cls):
-        return Column(Integer, ForeignKey('users.id'))
+        tbl = cls.get_user_tablename()
+        return Column(Integer, ForeignKey('{}.id'.format(tbl)), default=cls.get_user_default)
 
     @declared_attr
     def owner(cls):
-        return relationship('User')
+        cls.get_user_tablename() # show error on incorrect definition
+        return relationship(cls.__user_model__)
 
     @declared_attr
     def owner_permissions(cls):
@@ -391,13 +422,43 @@ class GroupMixin(object):
     Mixin providing group-related database properties
     for object, in the context of enforcing permissions.
     """
+    __group_model__ = 'Group'
+
+    @classmethod
+    def get_group_default(cls):
+        return None
+
+    @classmethod
+    def get_group_tablename(cls):
+        # format input
+        if isinstance(cls.__group_model__, str):
+            model = cls.__group_model__
+        else:
+            model = cls.__group_model__.__name__
+
+        # extract table name from class registry
+        tablename = None
+        for c in cls._decl_class_registry.values():
+            if hasattr(c, '__tablename__') and c.__name__ == model:
+                tablename = c.__tablename__
+                break
+
+        # let user know if group table couldn't be found
+        if tablename is None:
+            raise AssertionError(
+                'Associated Group model must be named `{}` or defined '
+                'with __group_model__ property!'.format(model))
+
+        return tablename
+
     @declared_attr
     def group_id(cls):
-        return Column(Integer, ForeignKey('groups.id'))
+        tbl = cls.get_group_tablename()
+        return Column(Integer, ForeignKey('{}.id'.format(tbl)), default=cls.get_group_default)
 
     @declared_attr
     def group(cls):
-        return relationship('Group')
+        return relationship(cls.__group_model__)
 
     @declared_attr
     def group_permissions(cls):
