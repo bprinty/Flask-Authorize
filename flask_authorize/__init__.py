@@ -15,6 +15,8 @@ from .mixins import OwnerPermissionsMixin       ## noqa
 from .mixins import GroupPermissionsMixin       ## noqa
 from .mixins import PermissionsMixin            ## noqa
 
+from .mixins import AccessControlPermissionsMixin  ## noqa
+
 from .mixins import default_permissions         ## noqa
 from .mixins import default_allowances          ## noqa
 from .mixins import default_restrictions        ## noqa
