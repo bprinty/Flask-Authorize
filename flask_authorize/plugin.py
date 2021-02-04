@@ -407,9 +407,9 @@ class Authorizer(object):
             operation = list(operation)[0]
             
             if hasattr(arg, "special_users") and CURRENT_USER():
-                for user in arg.special_users.all():
-                    if CURRENT_USER.id == user.id:
-                        permitted |= operation.values() in user.permissions
+                for assoc in arg.special_users.all():
+                    if CURRENT_USER().id == assoc.entity_id:
+                        permitted |= operation in assoc.permissions
 
             if hasattr(arg, "special_groups") and CURRENT_USER():
                 for group in arg.special_groups.all():

@@ -11,8 +11,9 @@ import pytest
 import factory
 from flask import Flask, render_template, g
 from flask_sqlalchemy import SQLAlchemy
-from flask_authorize import Authorize, PermissionsMixin, AllowancesMixin, RestrictionsMixin
+from flask_authorize import Authorize, PermissionsMixin, AllowancesMixin, RestrictionsMixin, AccessControlPermissionsMixin
 from flask_authorize.mixins import default_allowances, default_restrictions, default_permissions
+from flask_authorize.mixin_generator import generate_association_table
 
 from . import SANDBOX
 
@@ -34,6 +35,9 @@ app.config.from_object(Config)
 db = SQLAlchemy(app)
 authorize = Authorize(app, current_user=lambda: g.user)
 
+# mixins
+# ------
+UserArticleMixin = generate_association_table("User", "Article")
 
 # models
 # ------
@@ -94,6 +98,19 @@ class Item(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), index=True, nullable=False)
 
+
+# modified examples
+# ------
+UserPaperMixin = generate_association_table("User", "Paper")
+
+class UserPaperAssociation(db.Model, UserPaperMixin):
+    pass
+
+class Paper(db.Model, AccessControlPermissionsMixin):
+    __tablename__ = 'papers'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), index=True, nullable=False)
 
 # endpoints
 # ---------
@@ -161,6 +178,17 @@ class ItemFactory(factory.alchemy.SQLAlchemyModelFactory):
         sqlalchemy_session = db.session
         sqlalchemy_session_persistence = 'commit'
 
+class PaperFactory(factory.alchemy.SQLAlchemyModelFactory):
+
+    id = factory.Sequence(lambda x: x + 100)
+    name = factory.Faker('name')
+    owner = factory.SubFactory(UserFactory)
+    permissions = factory.LazyFunction(default_permissions)
+
+    class Meta:
+        model = Paper
+        sqlalchemy_session = db.session
+        sqlalchemy_session_persistence = 'commit'
 
 # fixtures
 # --------
@@ -250,3 +278,15 @@ def unrestricted(client):
         name='unrestricted',
         groups=[group]
     )
+
+@pytest.fixture(scope='session')
+def special(client):
+    group = GroupFactory.create(
+        name='visitors'
+    )
+    user =  UserFactory.create(
+        name='visitor',
+        groups=[group]
+    )
+
+    yield user
