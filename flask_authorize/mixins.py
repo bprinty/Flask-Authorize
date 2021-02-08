@@ -523,7 +523,7 @@ class AccessControlPermissionsMixin(PermissionsMixin):
             )
 
         # Check if user is part of a group that has special access
-        if hasattr(cls, 'special_groups'):
+        if current_user and hasattr(cls, 'special_groups'):
             group_list = [
                 x.special_groups.all()
                 for x in cls.query.all()
