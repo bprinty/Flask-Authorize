@@ -1,0 +1,29 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: requirements
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r tests/requirements.txt
+          pip install -r requirements.txt
+
+      - name: test
+        run: |
+          pytest
+
+      - name: report
+        run: |
+          codecov

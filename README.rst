@@ -1,16 +1,16 @@
 
 |Build status| |Code coverage| |Maintenance yes| |GitHub license| |Documentation Status|
 
-.. |Build status| image:: https://travis-ci.com/bprinty/Flask-Authorize.png?branch=master
-   :target: https://travis-ci.com/bprinty/Flask-Authorize
+.. |Build status| image:: https://github.com/bprinty/Flask-Authorize/actions/workflows/ci.yml/badge.svg
+   :target: https://github.com/bprinty/Flask-Authorize/actions/workflows/ci.yml
 
 .. |Code coverage| image:: https://codecov.io/gh/bprinty/Flask-Authorize/branch/master/graph/badge.svg
    :target: https://codecov.io/gh/bprinty/Flask-Authorize
 
 .. |Maintenance yes| image:: https://img.shields.io/badge/Maintained%3F-yes-green.svg
-   :target: https://GitHub.com/Naereen/StrapDown.js/graphs/commit-activity
+   :target: https://github.com/bprinty/Flask-Authorize/graphs/commit-activity
 
-.. |GitHub license| image:: https://img.shields.io/github/license/Naereen/StrapDown.js.svg
+.. |GitHub license| image:: https://img.shields.io/github/license/bprinty/Flask-Authorize.svg
    :target: https://github.com/bprinty/Flask-Authorize/blob/master/LICENSE
 
 .. |Documentation Status| image:: https://readthedocs.org/projects/flask-authorize/badge/?version=latest
@@ -130,7 +130,7 @@ Defining database models:
 Defining endpoint actions:
 
 .. code-block:: python
-    
+
     from flask import jsonify
     from werkzeug import NotFound, Unauthorized
 
