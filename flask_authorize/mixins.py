@@ -98,7 +98,8 @@ def gather_models():
 
     # inspect current models and add to map
     db = current_app.extensions['sqlalchemy'].db
-    for cls in db.Model._decl_class_registry.values():
+    registry = class_registry(db.Model)
+    for cls in registry.values():
         if isinstance(cls, type) and issubclass(cls, db.Model):
             if hasattr(cls, check) and not getattr(cls, check):
                 continue
@@ -129,6 +130,18 @@ def table_key(cls):
     elif current_app.config['AUTHORIZE_MODEL_PARSER'] == 'table':
         mapper = inspect(cls)
         return mapper.tables[0].name
+
+
+def class_registry(cls):
+    """
+    Function for dynamically getting class
+    registry dictionary from specified model.
+    """
+    try:
+        return dict(cls._sa_registry._class_registry)
+    except:
+        return dict(cls._decl_class_registry)
+    return
 
 
 def default_permissions_factory(name):
@@ -385,7 +398,8 @@ class OwnerMixin(object):
 
         # extract table name from class registry
         tablename = None
-        for c in cls._decl_class_registry.values():
+        registry = class_registry(cls)
+        for c in registry.values():
             if hasattr(c, '__tablename__') and c.__name__ == model:
                 tablename = c.__tablename__
                 break
@@ -438,7 +452,8 @@ class GroupMixin(object):
 
         # extract table name from class registry
         tablename = None
-        for c in cls._decl_class_registry.values():
+        registry = class_registry(cls)
+        for c in registry.values():
             if hasattr(c, '__tablename__') and c.__name__ == model:
                 tablename = c.__tablename__
                 break
