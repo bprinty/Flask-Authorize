@@ -1,4 +1,4 @@
 six
 Flask
-SQLAlchemy==1.2
+SQLAlchemy
 Flask-SQLAlchemy
