@@ -61,6 +61,7 @@ Below details a minimal example showcasing how to use the extension. First, to s
     from flask import Flask
     from flask_login import LoginManager
     from flask_sqlalchemy import SQLAlchemy
+    from flask_authorize import Authorize
 
     app = Flask(__name__)
     app.config.from_object(Config)
