@@ -11,7 +11,7 @@ Base
 
 
 
-Databse Mixins
+Database Mixins
 --------------
 
 .. autoclass:: flask_authorize.mixins.PermissionsMixin
