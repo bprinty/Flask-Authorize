@@ -96,8 +96,13 @@ def gather_models():
         return
     check = current_app.config['AUTHORIZE_IGNORE_PROPERTY']
 
+    # normalize sqla extension (account for api change)
+    if hasattr(current_app.extensions['sqlalchemy'], 'db'):
+        db = current_app.extensions['sqlalchemy'].db
+    else:
+        db = current_app.extensions['sqlalchemy']
+
     # inspect current models and add to map
-    db = current_app.extensions['sqlalchemy'].db
     registry = class_registry(db.Model)
     for cls in registry.values():
         if isinstance(cls, type) and issubclass(cls, db.Model):
