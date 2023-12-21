@@ -146,7 +146,6 @@ def class_registry(cls):
         return dict(cls._sa_registry._class_registry)
     except:
         return dict(cls._decl_class_registry)
-    return
 
 
 def default_permissions_factory(name):
