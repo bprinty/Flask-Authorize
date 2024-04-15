@@ -13,7 +13,7 @@ from functools import wraps
 from flask import current_app
 from werkzeug.exceptions import Unauthorized
 
-from .mixins import default_permissions, default_allowances, table_key
+from .mixins import default_allowances, table_key
 
 
 # constants
