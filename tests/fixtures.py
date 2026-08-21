@@ -51,6 +51,13 @@ UserRole = db.Table(
 )
 
 
+GroupRole = db.Table(
+    'group_role', db.Model.metadata,
+    db.Column('group_id', db.Integer, db.ForeignKey('groups.id')),
+    db.Column('role_id', db.Integer, db.ForeignKey('roles.id'))
+)
+
+
 class User(db.Model):
     __tablename__ = 'users'
     __check_access__ = False
@@ -69,6 +76,7 @@ class Group(db.Model, RestrictionsMixin):
     name = db.Column(db.String(255), nullable=False, unique=True, index=True)
     desc = db.Column(db.String(255))
     users = db.relationship('User', secondary=UserGroup)
+    roles = db.relationship('Role', secondary=GroupRole)
 
 
 class Role(db.Model, AllowancesMixin):

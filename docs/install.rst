@@ -10,11 +10,11 @@ To install the latest stable release via pip, run:
     $ pip install Flask-Authorize
 
 
-Alternatively with easy_install, run:
+Or via `uv <https://docs.astral.sh/uv/>`_, run:
 
 .. code-block:: bash
 
-    $ easy_install Flask-Authorize
+    $ uv add Flask-Authorize
 
 
 To install the bleeding-edge version of the project:
@@ -23,4 +23,4 @@ To install the bleeding-edge version of the project:
 
     $ git clone http://github.com/bprinty/Flask-Authorize.git
     $ cd Flask-Authorize
-    $ python setup.py install
+    $ uv sync --all-groups

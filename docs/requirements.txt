@@ -1,3 +1,0 @@
-Flask
-Flask-SQLAlchemy
-Flask-Sphinx-Themes>=1.0.2

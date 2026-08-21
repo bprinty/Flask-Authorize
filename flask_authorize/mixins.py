@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-#
-# Database mixins
-#
-# ------------------------------------------------
-
+"""
+SQLAlchemy mixins for enforcing owner/group/role-based permissions on models.
+"""
 
 # imports
 # -------

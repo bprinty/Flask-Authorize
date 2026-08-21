@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-#
-# Plugin Setup
-#
-# ------------------------------------------------
-
+"""
+Flask-Authorize plugin and authorizer decorator for access control.
+"""
 
 # imports
 # -------
@@ -18,7 +16,6 @@ from .mixins import default_allowances, table_key
 
 # constants
 # ---------
-AUTHORIZE_CACHE = dict()
 CURRENT_USER = None
 EXCEPTION = None
 STRICT = True
@@ -131,20 +128,32 @@ def has_permission(expected, actual):
     return len(x) == len(expected)
 
 
+def role_name(role):
+    """
+    Resolve name from role object for checking membership.
+    """
+    global STRICT
+    if hasattr(role, 'name'):
+        return role.name
+    elif not STRICT:
+        return str(role)
+    else:
+        raise AssertionError('`Role` model has no `name` property for checking membership.')
+
+
 def user_has_role(user, roles):
     """
     Check if specified user has one of the specified roles.
     """
-    global STRICT
-    if not hasattr(user, 'roles'):
-        return False
-    for role in user.roles:
-        if hasattr(role, 'name'):
-            check = role.name
-        elif not STRICT:
-            check = str(role)
-        else:
-            raise AssertionError('`Role` model has no `name` property for checking membership.')
+    # gather roles directly assigned to user, along with any
+    # roles inherited via group memberships
+    creds = list(getattr(user, 'roles', []))
+    for group in getattr(user, 'groups', []):
+        creds.extend(getattr(group, 'roles', []))
+
+    # check credentials against specified roles
+    for role in creds:
+        check = role_name(role)
         if check in roles:
             return True
     return False
@@ -291,22 +300,22 @@ class Authorizer(object):
         if not isinstance(cargs[0], types.FunctionType):
             return self.allowed(*cargs, user=ckwargs.get('user'))
 
-        # allow for duplicate decorations on functions
+        # allow for multiple decorations on the same function by
+        # checking if the function is already wrapped by an authorizer
         func = cargs[0]
-        if func.__name__ not in AUTHORIZE_CACHE:
-            AUTHORIZE_CACHE[func.__name__] = self
-        else:
-            original = AUTHORIZE_CACHE[func.__name__]
-            updated = Authorizer(
-                permission=original.permission + self.permission,
-                has_role=original.has_role + self.has_role,
-                in_group=original.in_group + self.in_group,
-                create=original.create + self.create
+        if hasattr(func, '__authorize__'):
+
+            # merge permissions of existing authorizer in place
+            existing = func.__authorize__
+            func.__authorize__ = Authorizer(
+                permission=existing.permission + self.permission,
+                has_role=existing.has_role + self.has_role,
+                in_group=existing.in_group + self.in_group,
+                create=existing.create + self.create
             )
-            AUTHORIZE_CACHE[func.__name__] = updated
-            del original
             return func
 
+        # wrap function with enforcement of this authorizer
         @wraps(func)
         def inner(*args, **kwargs):
 
@@ -314,12 +323,13 @@ class Authorizer(object):
             check = list(args) + list(kwargs.values())
 
             # check if authorized
-            auth = AUTHORIZE_CACHE[func.__name__]
-            if not auth.allowed(*check):
+            if not inner.__authorize__.allowed(*check):
                 raise EXCEPTION
 
             return func(*args, **kwargs)
 
+        # attach authorizer to wrapper for stacked decorations
+        inner.__authorize__ = self
         return inner
 
     def allowed(self, *args, **kwargs):

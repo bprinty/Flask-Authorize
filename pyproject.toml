@@ -1,0 +1,76 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "Flask-Authorize"
+dynamic = ["version"]
+description = "Flask plugin for content authorization and access control"
+readme = "README.md"
+authors = [
+    { name = "Blake Printy", email = "bprinty@gmail.com" },
+]
+license = { text = "MIT" }
+requires-python = ">=3.9"
+keywords = [
+    "Flask-Authorize",
+    "flask",
+    "permissions",
+    "authorization",
+    "authz",
+    "acl",
+    "rbac",
+    "user",
+    "group",
+    "role",
+]
+classifiers = [
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "six",
+    "Flask",
+    "SQLAlchemy",
+    "Flask-SQLAlchemy",
+]
+
+[project.urls]
+Homepage = "https://github.com/bprinty/Flask-Authorize"
+
+[dependency-groups]
+dev = [
+    "pytest>=4.6",
+    "pytest-cov",
+    "parameterized",
+    "Factory-Boy",
+    "codecov",
+]
+docs = [
+    "Flask-Sphinx-Themes>=1.0.2",
+]
+
+[tool.hatch.version]
+path = "flask_authorize/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["flask_authorize"]
+
+[tool.pytest.ini_options]
+addopts = "--cov-report term --cov=flask_authorize -v -s"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::sqlalchemy.exc.SAWarning",
+]
+testpaths = ["tests"]

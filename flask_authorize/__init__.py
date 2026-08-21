@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
+"""
+Flask-Authorize: Flask plugin for content authorization and access control.
+"""
 
 __pkg__ = 'Flask-Authorize'
 __url__ = 'https://github.com/bprinty/Flask-Authorize'
 __info__ = 'Flask plugin for content authorization and access control'
 __author__ = 'Blake Printy'
 __email__ = 'bprinty@gmail.com'
-__version__ = '0.2.7'
+__version__ = '0.2.8'
 
 
 from .mixins import RestrictionsMixin           ## noqa

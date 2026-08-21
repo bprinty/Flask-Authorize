@@ -1,4 +1,0 @@
-six
-Flask
-SQLAlchemy
-Flask-SQLAlchemy

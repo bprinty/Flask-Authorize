@@ -149,6 +149,54 @@ The important thing to understand is that there are two reserved keywords on the
 This application will implicitly check the existence of ``roles`` and ``groups`` properties on the current user object when checking authorization. If either of these properties is not defined, this plugin will not perform associated authorization checks.
 
 
+Role Inheritance via Groups
+---------------------------
+
+Users can inherit roles through their group memberships — for example, everyone in the 'editors' group can implicitly be given the 'can_edit_posts' role. To enable this, associate ``Role`` objects with your ``Group`` model via a mapping table:
+
+.. code-block:: python
+
+        GroupRole = db.Table(
+            'group_role', db.Model.metadata,
+            db.Column('group_id', db.Integer, db.ForeignKey('groups.id')),
+            db.Column('role_id', db.Integer, db.ForeignKey('roles.id'))
+        )
+
+Then, define a ``roles`` relationship on the ``Group`` model:
+
+.. code-block:: python
+
+        class Group(db.Model, RestrictionsMixin):
+            __tablename__ = 'groups'
+
+            id = db.Column(db.Integer, primary_key=True)
+            name = db.Column(db.String(255), nullable=False, unique=True)
+            roles = db.relationship('Role', secondary=GroupRole)
+
+
+The ``roles`` property on ``Group`` is a reserved property much like ``roles`` and ``groups`` on the ``User`` model: when present, role-based authorization (e.g. ``@authorize.has_role(...)``) will check both roles assigned directly to the user and roles inherited through the user's group memberships. If the ``Group`` model does not define a ``roles`` property, no group-based role resolution occurs.
+
+.. note:: Resolving group roles requires the plugin to enumerate the user's ``groups`` when checking role authorization. If your ``Group`` model defines a ``roles`` property, keep it to a flat list of ``Role`` objects — nested group hierarchies are not resolved. Only role *membership* is inherited — ``restrictions`` and ``allowances`` assigned to inherited roles are not applied; those policies are only enforced for roles and groups directly assigned to the user.
+
+For more customized inheritance policies (e.g. transitive resolution or explicit precedence rules), you can model the inheritance on the application side with a computed ``roles`` property on the ``User`` model, since the plugin only reads the ``roles`` property when checking role authorization:
+
+.. code-block:: python
+
+        class User(db.Model):
+            __tablename__ = 'users'
+
+            id = db.Column(db.Integer, primary_key=True)
+            name = db.Column(db.String(255), nullable=False, unique=True)
+            groups = db.relationship('Group', secondary=UserGroup)
+            _roles = db.relationship('Role', secondary=UserRole)
+
+            @property
+            def roles(self):
+                # union of directly assigned roles and roles
+                # inherited through group memberships
+                inherited = [role for group in self.groups for role in group.roles]
+                return self._roles + inherited
+
 Content Permissions
 -------------------
 
